@@ -1,0 +1,123 @@
+const Discussion = require("../models/Discussion");
+const Reply = require("../models/Reply");
+
+
+// CREATE DISCUSSION THREAD
+const createDiscussion = async (req, res) => {
+  try {
+
+    console.log("BODY:", req.body); // 👈 ADD THIS
+
+    const { postId, userId } = req.body;
+
+    let discussion = await Discussion.findOne({ postId });
+
+    if (discussion) {
+      return res.json({ discussion });
+    }
+
+    const newDiscussion = new Discussion({
+      postId,
+      userId,
+      title: "Discussion",
+      content: "Start chatting"
+    });
+
+    await newDiscussion.save();
+
+    res.json({ discussion: newDiscussion });
+
+  } catch (error) {
+    console.log("ERROR:", error.message); // 👈 ADD THIS
+    res.status(500).json({ error: error.message });
+  }
+};
+// GET DISCUSSIONS FOR A POST
+const getPostDiscussions = async (req, res) => {
+  try {
+
+    const { postId } = req.params;
+
+    const discussions = await Discussion.find({ postId })
+      .populate("userId", "username");
+
+    res.json(discussions);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// ADD REPLY
+// ADD REPLY
+// ADD REPLY
+// ADD REPLY
+const addReply = async (req, res) => {
+  try {
+    const { discussionId, userId, content, parentReply } = req.body;
+
+    // 1. Create and save the basic comment
+    const reply = new Reply({ discussionId, userId, content, parentReply });
+    await reply.save();
+
+    // 👇 2. FORCE FETCH: Grab it fresh from the DB and populate it! 👇
+    const populatedReply = await Reply.findById(reply._id).populate("userId", "username avatar");
+
+    // 3. Send the NEW populated object back to React
+    res.json({
+      message: "Reply added",
+      reply: populatedReply // 👈 Make sure this says populatedReply!
+    });
+
+  } catch (error) {
+    console.error("Error adding reply:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+// GET REPLIES OF DISCUSSION
+const getReplies = async (req, res) => {
+  try {
+
+    const { discussionId } = req.params;
+
+    const replies = await Reply.find({ discussionId })
+      .populate("userId", "username");
+
+    res.json(replies);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+const deleteReply = async (req, res) => {
+  try {
+
+    const { replyId, userId } = req.body;
+
+    const reply = await Reply.findById(replyId);
+
+    if (!reply) {
+      return res.status(404).json({ message: "Reply not found" });
+    }
+
+    // 🔒 Only owner can delete
+    if (reply.userId.toString() !== userId) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    await Reply.findByIdAndDelete(replyId);
+
+    res.json({ message: "Reply deleted" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = {
+  createDiscussion,
+  getPostDiscussions,
+  addReply,
+  getReplies,deleteReply
+};

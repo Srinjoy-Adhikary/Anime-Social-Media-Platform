@@ -1,0 +1,616 @@
+/* ═══════════════════════════════════════════════
+   DEMON SLAYER POST CARD
+   ═══════════════════════════════════════════════ */
+
+:root {
+  --water-color: #00bfff;
+  --flame-color: #ff4500;
+  --thunder-color: #ffff00;
+  --wind-color: #e0e0e0;
+  --stone-color: #a0826d;
+  --blood-red: #8b0000;
+  --bg-dark: #0a0a0a;
+  --text-primary: #f5e6d3;
+  --text-secondary: #a89a8a;
+}
+
+.demon-post-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(26, 15, 15, 0.9) 0%, rgba(42, 20, 20, 0.7) 100%);
+  border: 1px solid rgba(139, 0, 0, 0.3);
+  border-radius: 2px;
+  padding: 1.5rem;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(139, 0, 0, 0.2);
+  width: 100%;           /* Take up full available width... */
+  max-width: 650px;      /* ...but don't grow wider than 650px */
+  margin: 0 auto 2rem;
+}
+
+/* Breathing style color variations */
+.demon-post-card--water {
+  --accent-color: #00bfff;
+  --glow-color: rgba(0, 191, 255, 0.3);
+}
+
+.demon-post-card--flame {
+  --accent-color: #ff4500;
+  --glow-color: rgba(255, 69, 0, 0.3);
+}
+
+.demon-post-card--thunder {
+  --accent-color: #ffff00;
+  --glow-color: rgba(255, 255, 0, 0.2);
+}
+
+.demon-post-card--wind {
+  --accent-color: #e0e0e0;
+  --glow-color: rgba(224, 224, 224, 0.2);
+}
+
+.demon-post-card--stone {
+  --accent-color: #a0826d;
+  --glow-color: rgba(160, 130, 109, 0.25);
+}
+
+/* Aura effect */
+.demon-post__aura {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 100% 0%, var(--glow-color) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.demon-post-card:hover .demon-post__aura {
+  opacity: 1;
+}
+
+/* Top accent line with breathing effect */
+.demon-post-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-color), transparent);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  box-shadow: 0 0 15px var(--accent-color);
+}
+
+.demon-post-card:hover::before {
+  opacity: 1;
+}
+
+/* Corner demon mark */
+.demon-post-card::after {
+  content: '◆';
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  color: rgba(139, 0, 0, 0.3);
+  font-size: 1.5rem;
+  transition: all 0.35s ease;
+  z-index: 2;
+}
+
+.demon-post-card:hover::after {
+  color: var(--accent-color);
+  opacity: 0.7;
+  transform: scale(1.2) rotate(10deg);
+}
+
+.demon-post-card:hover {
+  border-color: var(--accent-color);
+  box-shadow: 
+    0 8px 32px rgba(139, 0, 0, 0.4),
+    0 0 30px var(--glow-color),
+    inset 0 0 20px rgba(139, 0, 0, 0.15);
+  transform: translateY(-4px);
+}
+
+/* ─ Header ─ */
+.demon-post__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.demon-post__breathing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.breathing-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  padding: 4px 10px;
+  border: 1px solid var(--accent-color);
+  border-radius: 1px;
+  background: rgba(139, 0, 0, 0.1);
+  box-shadow: 0 0 10px var(--glow-color);
+  transition: all 0.2s ease;
+}
+
+.demon-post-card:hover .breathing-badge {
+  background: var(--accent-color);
+  color: var(--bg-dark);
+  box-shadow: 0 0 20px var(--accent-color);
+}
+
+.spoiler-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ff6b6b;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  background: rgba(255, 107, 107, 0.08);
+  border-radius: 1px;
+  text-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+}
+
+.watchlist-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ffc107;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  background: rgba(255, 193, 7, 0.08);
+  border-radius: 1px;
+  text-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+}
+
+/* ─ Content wrapper ─ */
+.demon-post__content-wrap {
+  position: relative;
+  margin-bottom: 1.2rem;
+  border-radius: 2px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* ─ Spoiler overlay ─ */
+.demon-post__spoiler-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 2px;
+  animation: demon-aura-pulse 2s ease-in-out infinite;
+}
+
+.demon-post__spoiler-overlay p {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  color: rgba(245, 230, 211, 0.5);
+  text-transform: uppercase;
+}
+
+/* ─ Reveal button ─ */
+.demon-post__reveal-btn {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--blood-red), #dc143c);
+  color: #fff;
+  border: 1px solid rgba(220, 20, 60, 0.6);
+  border-radius: 1px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.demon-post__reveal-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.5s, height 0.5s;
+}
+
+.demon-post__reveal-btn:hover {
+  box-shadow: 0 0 35px rgba(139, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.demon-post__reveal-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.demon-post__reveal-btn:active {
+  transform: scale(0.95);
+}
+
+/* ─ Body content ─ */
+.demon-post__body {
+  transition: filter 0.35s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.demon-post__body--blurred {
+  filter: blur(14px) grayscale(60%);
+  user-select: none;
+  pointer-events: none;
+}
+
+.demon-post__title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+  letter-spacing: 1px;
+  line-height: 1.3;
+}
+
+.demon-post__text {
+  font-family: 'Crimson Text', serif;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 1rem;
+}
+
+.demon-post__image {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  object-fit: cover;
+  border-radius: 2px;
+  margin-top: 1rem;
+  border: 1px solid rgba(139, 0, 0, 0.3);
+  transition: border-color 0.25s ease, filter 0.25s ease;
+  box-shadow: 0 4px 16px rgba(139, 0, 0, 0.2);
+}
+
+.demon-post-card:hover .demon-post__image {
+  border-color: var(--accent-color);
+  filter: brightness(1.05);
+}
+
+/* ─ Reactions ─ */
+.demon-post__reactions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.demon-post__reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: rgba(139, 0, 0, 0.08);
+  border: 1px solid rgba(139, 0, 0, 0.2);
+  border-radius: 1px;
+  color: var(--text-secondary);
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 8px rgba(139, 0, 0, 0.1);
+}
+
+.demon-post__reaction-btn:hover {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--bg-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--glow-color);
+}
+
+.demon-post__reaction-btn--active {
+  background: rgba(220, 20, 60, 0.3);
+  border-color: #dc143c;
+  color: #dc143c;
+  box-shadow: 0 0 12px rgba(220, 20, 60, 0.4);
+}
+
+/* ─ Actions ─ */
+.demon-post__actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+.demon-post__author {
+  margin-left: 12px;
+  font-family: 'Cinzel', serif;
+  color: var(--accent-color); 
+  font-weight: 700;
+  font-size: 1.12rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  opacity: 0.9;
+
+  /* 🔥 ADD THIS */
+  animation: breathingGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes breathingGlow {
+  0% {
+    text-shadow: 0 0 5px var(--glow-color);
+    opacity: 0.7;
+  }
+  50% {
+    text-shadow: 0 0 15px var(--accent-color);
+    opacity: 1;
+  }
+  100% {
+    text-shadow: 0 0 5px var(--glow-color);
+    opacity: 0.7;
+  }
+}
+.demon-post-card:hover .demon-post__author {
+  opacity: 1;
+  text-shadow: 0 0 10px var(--accent-color);
+  transform: translateX(3px);
+}
+.demon-post__discussion-btn,
+.demon-post__watchlist-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+  border-radius: 1px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px var(--glow-color);
+}
+
+.demon-post__discussion-btn::before,
+.demon-post__watchlist-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: var(--accent-color);
+  z-index: -1;
+  transition: left 0.2s ease;
+  opacity: 0.2;
+}
+
+.demon-post__discussion-btn:hover,
+.demon-post__watchlist-btn:hover {
+  color: var(--bg-dark);
+  box-shadow: 0 0 20px var(--accent-color);
+  transform: translateY(-2px);
+}
+
+.demon-post__discussion-btn:hover::before,
+.demon-post__watchlist-btn:hover::before {
+  left: 0;
+}
+
+.demon-post__watchlist-btn--active {
+  border-color: #ffc107;
+  color: #ffc107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.4);
+}
+
+.discussion-icon,
+.watchlist-icon {
+  font-size: 1rem;
+}
+
+.discussion-text,
+.watchlist-text {
+  font-size: 0.75rem;
+}
+
+/* ─ Demon marks decoration ─ */
+.demon-post__mark {
+  position: absolute;
+  color: rgba(139, 0, 0, 0.15);
+  font-size: 3rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  z-index: 1;
+}
+
+.demon-post__mark--1 {
+  top: -20px;
+  left: -20px;
+  content: '◆';
+}
+
+.demon-post__mark--2 {
+  bottom: -30px;
+  right: -30px;
+  content: '◆';
+  font-size: 4rem;
+}
+
+.demon-post-card:hover .demon-post__mark {
+  opacity: 0.3;
+}
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════ */
+
+@keyframes demon-aura-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 20px rgba(139, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow: inset 0 0 40px rgba(220, 20, 60, 0.3);
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.demon-post-card {
+  animation: float-in 0.6s ease-out;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  .demon-post-card {
+    padding: 1.2rem 1rem;
+  }
+
+  .demon-post__title {
+    font-size: 1.1rem;
+  }
+
+  .demon-post__text {
+    font-size: 0.95rem;
+  }
+
+  .demon-post__image {
+    max-height: 280px;
+    margin-top: 0.8rem;
+  }
+
+  .demon-post__reactions {
+    gap: 0.4rem;
+  }
+
+  .demon-post__reaction-btn {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+
+  .demon-post__discussion-btn,
+  .demon-post__watchlist-btn {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+  }
+
+  .breathing-badge {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .demon-post-card {
+    padding: 1rem;
+  }
+
+  .demon-post__header {
+    gap: 0.5rem;
+  }
+
+  .demon-post__title {
+    font-size: 1rem;
+  }
+
+  .demon-post__text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .demon-post__reactions {
+    gap: 0.3rem;
+  }
+
+  .demon-post__reaction-btn {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+  }
+
+  .demon-post__actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .demon-post__discussion-btn,
+  .demon-post__watchlist-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem;
+  }
+}
+
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .demon-post-card,
+  .demon-post-card:hover,
+  .breathing-badge,
+  .demon-post__reveal-btn,
+  .demon-post__image {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media print {
+  .demon-post__spoiler-overlay,
+  .demon-post__actions {
+    display: none;
+  }
+}
