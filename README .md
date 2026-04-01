@@ -16,8 +16,12 @@ A full‑stack anime-focused social platform where users share posts, react, and
 ---
 
 ## Demo / Screenshot
+<img width="1919" height="957" alt="image" src="https://github.com/user-attachments/assets/e19a6a89-5270-4f96-bb57-a818c21ea281" />
+<img width="1689" height="860" alt="image" src="https://github.com/user-attachments/assets/598afce6-1169-471f-a85f-17e3b3c42eee" />
+<img width="1404" height="735" alt="image" src="https://github.com/user-attachments/assets/8b2010ed-447d-4dab-a526-fbf27b1e189b" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5aa19b88-fa8b-4c8d-afaf-3cacc84806dd" />
+<img width="1433" height="862" alt="image" src="https://github.com/user-attachments/assets/e111ca8d-bd20-4e45-b599-1d91c467747c" />
 
-> Add a link to a live demo or include screenshots/GIFs here to showcase the app.
 
 ---
 
@@ -149,8 +153,6 @@ NODE_ENV=production node server.js
     - hooks/
 - README.md — this file
 
-> Update this section with actual file names and brief descriptions if you want the README to list exact paths.
-
 ---
 
 ##  How Spoiler Protection Works
@@ -176,7 +178,6 @@ This ensures personalized, context-aware spoiler protection across the app.
 - POST /api/watchlist — Add/update a watchlist entry
 - POST /api/comments — Create comments / threads
 
-(Replace or expand this list with your actual endpoints and request/response examples.)
 
 ---
 
@@ -196,15 +197,6 @@ Contributions are welcome!
 - Commit changes: `git commit -m "feat: add ..."`
 - Push and open a pull request
 
-Include a short note about code style, typical PR size, and how you prefer issues to be filed (bug, enhancement, question).
-
----
-
-##  License
-
-Add your license here (e.g., MIT). If you don't want to include a license, mention the default restrictions.
-
----
 
 ##  Contact
 
