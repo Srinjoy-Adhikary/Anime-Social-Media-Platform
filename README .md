@@ -1,10 +1,10 @@
-# 🎬 Anime Social Media Platform
+# Anime Social Media Platform
 
 A full‑stack anime-focused social platform where users share posts, react, and avoid spoilers intelligently based on their personal watchlists. The app provides a personalized spoiler-safe experience by blurring or hiding spoiler content until the user has finished the related anime or explicitly reveals it.
 
 ---
 
-## 🚀 Highlights
+## Highlights
 
 - Smart Spoiler Protection: Blurs or hides spoiler content based on each user's watchlist and completion status.
 - Watchlist System: Track anime as Watching, Completed, or Plan to Watch.
@@ -52,7 +52,7 @@ A full‑stack anime-focused social platform where users share posts, react, and
 
 ---
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 - Frontend: React + Vite, CSS
 - Backend: Node.js, Express.js
@@ -62,7 +62,7 @@ A full‑stack anime-focused social platform where users share posts, react, and
 
 ---
 
-## 🧭 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -133,7 +133,7 @@ NODE_ENV=production node server.js
 
 ---
 
-## 📂 Project Structure (high-level)
+##  Project Structure (high-level)
 
 - backend/ — Express server, API routes, models, middleware
   - controllers/
@@ -153,7 +153,7 @@ NODE_ENV=production node server.js
 
 ---
 
-## 🔒 How Spoiler Protection Works
+##  How Spoiler Protection Works
 
 1. Posts can be marked as containing spoilers.
 2. Each user has a watchlist with per-anime completion status.
@@ -166,7 +166,7 @@ This ensures personalized, context-aware spoiler protection across the app.
 
 ---
 
-## 📡 API Summary (examples)
+##  API Summary (examples)
 
 - POST /api/auth/register — Register a new user
 - POST /api/auth/login — Login and receive JWT
@@ -180,14 +180,14 @@ This ensures personalized, context-aware spoiler protection across the app.
 
 ---
 
-## ✅ Testing & Seeding
+##  Testing & Seeding
 
 - Add instructions for any test commands (e.g., `npm test`).
 - If you have a seeding script to populate demo data, document how to run it (e.g., `npm run seed`).
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome!
 
@@ -200,13 +200,13 @@ Include a short note about code style, typical PR size, and how you prefer issue
 
 ---
 
-## 📜 License
+##  License
 
 Add your license here (e.g., MIT). If you don't want to include a license, mention the default restrictions.
 
 ---
 
-## 📫 Contact
+##  Contact
 
 Maintainer: Srinjoy Adhikary  
 Repo: Srinjoy-Adhikary/Anime-Social-Media-Platform
