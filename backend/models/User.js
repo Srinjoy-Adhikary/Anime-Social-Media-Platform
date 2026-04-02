@@ -22,6 +22,20 @@ const userSchema = new mongoose.Schema({
   avatar: {
     type: String,
     default: ""
+  },  role: {
+    type: String,
+    enum: ["user", "moderator", "admin"],
+    default: "user",
+  },
+
+  // ── Account Lockout ──
+  failedLoginAttempts: {
+    type: Number,
+    default: 0,
+  },
+  lockUntil: {
+    type: Date,
+    default: null,
   },
  watchlist: [
  {

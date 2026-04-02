@@ -35,6 +35,14 @@ const searchUsers = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // Add this inside userController.js
 const getMe = async (req, res) => {
   try {
@@ -102,5 +110,5 @@ const updateUserProfile = async (req, res) => {
 
 module.exports = {
   getUserProfile,
-  updateUserProfile,getMe,searchUsers
+  updateUserProfile,getMe,searchUsers,getAllUsers
 };

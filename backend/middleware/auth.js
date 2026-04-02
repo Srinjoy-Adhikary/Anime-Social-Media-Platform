@@ -1,24 +1,47 @@
 const jwt = require("jsonwebtoken");
 
+// ─── protect ─────────────────────────────────────────────────────────────────
+// Verifies the short-lived access token from the cookie.
+// On failure, redirects to /login (SSR behaviour) instead of just returning 401.
 const protect = (req, res, next) => {
-  // 1. Grab the token from the HTTP-Only cookie
   const token = req.cookies.token;
 
   if (!token) {
+    // SSR redirect — browser requests go to /login; API clients get 401
+    if (req.accepts("html")) {
+      return res.redirect("/login");
+    }
     return res.status(401).json({ message: "Not authorized, no token" });
   }
 
   try {
-    // 2. Decode the token to get the user ID
-    const decoded = jwt.verify(token, "secretkey"); // Use your actual secret key
-    
-    // 3. Attach the secure ID to the request object for the controller to use
-    req.user = decoded; 
-    
-    next(); // Pass the request to the controller
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { id, role }
+    next();
   } catch (error) {
-    res.status(401).json({ message: "Not authorized, token failed" });
+    // Access token may have expired — tell the client to refresh
+    if (error.name === "TokenExpiredError") {
+      if (req.accepts("html")) return res.redirect("/login");
+      return res.status(401).json({ message: "Token expired", code: "TOKEN_EXPIRED" });
+    }
+    if (req.accepts("html")) return res.redirect("/login");
+    return res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
 
-module.exports = { protect };
+// ─── authorizeRoles ───────────────────────────────────────────────────────────
+// Usage: router.delete("/post/:id", protect, authorizeRoles("admin"), deletePost)
+// Pass one or more allowed roles as arguments.
+const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      if (req.accepts("html")) return res.redirect("/login");
+      return res.status(403).json({
+        message: `Access denied. Required role(s): ${roles.join(", ")}`,
+      });
+    }
+    next();
+  };
+};
+
+module.exports = { protect, authorizeRoles };

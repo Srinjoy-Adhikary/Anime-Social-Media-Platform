@@ -1,13 +1,25 @@
 const express = require("express");
 const router = express.Router();
-const {searchUsers, getUserProfile, updateUserProfile, getMe} = require("../controllers/userController");
-const { protect } = require("../middleware/auth");
+const {
+  searchUsers,
+  getUserProfile,
+  updateUserProfile,
+  getMe,
+  getAllUsers,   // admin-only example
+} = require("../controllers/userController");
+const { protect, authorizeRoles } = require("../middleware/auth");
 
-// The /:id handles the dynamic user ID being passed from the frontend
+// ─── Public Routes ────────────────────────────────────────────────────────────
 router.get("/search", searchUsers);
-router.get("/me", protect, getMe);
 router.get("/:id", getUserProfile);
+
+// ─── Protected Routes (any logged-in user) ────────────────────────────────────
+router.get("/me", protect, getMe);
 router.put("/:id", protect, updateUserProfile);
 
-module.exports = router;
+// ─── Admin-Only Routes ────────────────────────────────────────────────────────
+// Only users whose `role` field in the DB is "admin" can access these.
+// Example: GET /api/users/admin/all  →  returns every user (for an admin dashboard)
+router.get("/admin/all", protect, authorizeRoles("admin"), getAllUsers);
 
+module.exports = router;
