@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = 'http://localhost:5000';
 const AuthContext = createContext(null);
 
 // ─── Regex (mirrors backend) ──────────────────────────────────────────────────

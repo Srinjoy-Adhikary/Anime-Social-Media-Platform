@@ -141,21 +141,37 @@ export default function Profile() {
 
   // ── Save profile ─────────────────────────────────────────────────────────
   const onSave = async () => {
-    setSaveError('');
-    try {
+  setSaveError('');
+  try {
+    let response;
+
+    if (formData.avatarFile) {
+      // Send as multipart when there's a file
+      const fd = new FormData();
+      fd.append("username", formData.username);
+      fd.append("email",    formData.email);
+      fd.append("bio",      formData.bio);
+      fd.append("avatarFile", formData.avatarFile);
+      if (formData.password) fd.append("password", formData.password);
+
+      response = await axios.put(`/api/users/${profileId}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+    } else {
+      // Send as JSON (URL string or no change)
       const payload = { ...formData };
+      delete payload.avatarFile;
       if (!payload.password) delete payload.password;
-
-      const { data } = await axios.put(`/api/users/${profileId}`, payload);
-      setUser(data);
-      setIsEditing(false);
-      setFormData(p => ({ ...p, password: '' }));
-    } catch (e) {
-      console.error(e);
-      setSaveError(e.response?.data?.message || 'Failed to update profile.');
+      response = await axios.put(`/api/users/${profileId}`, payload);
     }
-  };
 
+    setUser(response.data);
+    setIsEditing(false);
+    setFormData(p => ({ ...p, password: '', avatarFile: null }));
+  } catch (e) {
+    setSaveError(e.response?.data?.message || 'Failed to update profile.');
+  }
+};
   const onStatusChange  = (id, val) => setWatchlistStatuses(p => ({ ...p, [id]: val }));
 
   const onUpdateStatus = async (anime) => {
@@ -271,22 +287,51 @@ export default function Profile() {
                 </p>
               )}
 
-              {[
-                { name:'avatar',   label:'Avatar URL' },
-                { name:'username', label:'Username'   },
-                { name:'email',    label:'Email'      },
-                { name:'password', label:'New Password', type:'password' },
-              ].map(({ name, label, type='text' }) => (
-                <div key={name} style={{ display:'flex', flexDirection:'column', gap:5 }}>
-                  <label style={{ fontSize:'.56rem', letterSpacing:'3px', color:C.goldDim, fontWeight:600 }}>{label.toUpperCase()}</label>
-                  <input name={name} type={type} value={formData[name]} onChange={onInput} style={inputBase} />
-                </div>
-              ))}
+              // Replace the avatar field in the edit form's .map() with this:
+{[
+  { name:'username', label:'Username'   },
+  { name:'email',    label:'Email'      },
+  { name:'password', label:'New Password', type:'password' },
+].map(({ name, label, type='text' }) => (
+  <div key={name} style={{ display:'flex', flexDirection:'column', gap:5 }}>
+    <label style={{ fontSize:'.56rem', letterSpacing:'3px', color:C.goldDim, fontWeight:600 }}>{label.toUpperCase()}</label>
+    <input name={name} type={type} value={formData[name]} onChange={onInput} style={inputBase} />
+  </div>
+))}
 
-              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-                <label style={{ fontSize:'.56rem', letterSpacing:'3px', color:C.goldDim, fontWeight:600 }}>BIO</label>
-                <textarea name="bio" value={formData.bio} onChange={onInput} style={{ ...inputBase, minHeight:95, resize:'vertical', lineHeight:1.6 }} />
-              </div>
+{/* Avatar section — file upload + URL fallback */}
+<div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+  <label style={{ fontSize:'.56rem', letterSpacing:'3px', color:C.goldDim, fontWeight:600 }}>AVATAR</label>
+
+  {/* File upload */}
+  <label style={{
+    display:'flex', alignItems:'center', gap:10, padding:'10px 14px',
+    background:'rgba(212,170,60,.04)', border:'1px dashed rgba(212,170,60,.28)',
+    borderRadius:2, cursor:'pointer', color:C.goldDim,
+    fontFamily:"'Cinzel',serif", fontSize:'.63rem', letterSpacing:'2px',
+  }}>
+    📷 UPLOAD PHOTO
+    <input
+      type="file" accept="image/*"
+      onChange={(e) => setFormData(p => ({ ...p, avatarFile: e.target.files[0], avatar: '' }))}
+      style={{ display:'none' }}
+    />
+  </label>
+
+  {/* Preview if file selected */}
+  {formData.avatarFile && (
+    <img
+      src={URL.createObjectURL(formData.avatarFile)}
+      alt="preview"
+      style={{ width:80, height:80, objectFit:'cover', borderRadius:2, border:`1px solid ${C.borderGold}` }}
+    />
+  )}
+
+  {/* URL fallback */}
+  <p style={{ margin:0, fontSize:'.55rem', color:'rgba(239,239,239,.25)', letterSpacing:'1px', textAlign:'center' }}>— OR PASTE URL —</p>
+  <input name="avatar" type="text" value={formData.avatar} onChange={onInput}
+    placeholder="https://..." style={inputBase} />
+</div>
 
               <div style={{ display:'flex', gap:10, justifyContent:'center', marginTop:4 }}>
                 <button className="btn" style={mkBtn('gold')}  onClick={onSave}>Save Changes</button>

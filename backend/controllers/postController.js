@@ -1,29 +1,18 @@
 const Post = require("../models/Post");
 const User = require("../models/User");
-const Discussion = require("../models/Discussion");
+const Discussion = require("../models/Discussion")
 
-// 🚀 1. CREATE POST
 const createPost = async (req, res) => {
   try {
     const { title, content, anime, spoiler, userId } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : "";
+    // req.file.path is now the Cloudinary URL (not a local path)
+    const image = req.file ? req.file.path : "";
 
-    const post = new Post({
-      title,
-      content,
-      anime,
-      spoiler,
-      image,
-      user: userId 
-    });
-
+    const post = new Post({ title, content, anime, spoiler, image, user: userId });
     await post.save();
 
-    // Populate immediately for the response
- const populatedPost = await Post.findById(post._id)
-  .populate("user", "username");
-
-res.json(populatedPost);
+    const populatedPost = await Post.findById(post._id).populate("user", "username");
+    res.json(populatedPost);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

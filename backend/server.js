@@ -30,6 +30,7 @@ app.use(
     credentials: true, // This is the magic switch that allows cookies to pass through!
   })
 );
+app.use(express.json()); // This is required to parse req.body!
 app.use("/api/posts",postRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/watchlist",watchlistRoutes);

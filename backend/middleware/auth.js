@@ -2,15 +2,11 @@ const jwt = require("jsonwebtoken");
 
 // ─── protect ─────────────────────────────────────────────────────────────────
 // Verifies the short-lived access token from the cookie.
-// On failure, redirects to /login (SSR behaviour) instead of just returning 401.
+// Strictly returns JSON/HTTP error codes for SPA/React consumption.
 const protect = (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
-    // SSR redirect — browser requests go to /login; API clients get 401
-    if (req.accepts("html")) {
-      return res.redirect("/login");
-    }
     return res.status(401).json({ message: "Not authorized, no token" });
   }
 
@@ -21,10 +17,9 @@ const protect = (req, res, next) => {
   } catch (error) {
     // Access token may have expired — tell the client to refresh
     if (error.name === "TokenExpiredError") {
-      if (req.accepts("html")) return res.redirect("/login");
       return res.status(401).json({ message: "Token expired", code: "TOKEN_EXPIRED" });
     }
-    if (req.accepts("html")) return res.redirect("/login");
+    // Any other token error (tampered, malformed, etc.)
     return res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
@@ -35,7 +30,6 @@ const protect = (req, res, next) => {
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      if (req.accepts("html")) return res.redirect("/login");
       return res.status(403).json({
         message: `Access denied. Required role(s): ${roles.join(", ")}`,
       });

@@ -8,18 +8,23 @@ const {
   getAllUsers,   // admin-only example
 } = require("../controllers/userController");
 const { protect, authorizeRoles } = require("../middleware/auth");
+const { uploadAvatar } = require("../middleware/upload");
 
-// ─── Public Routes ────────────────────────────────────────────────────────────
+// ─── Specific Routes (These MUST come first) ──────────────────────────────────
 router.get("/search", searchUsers);
+
+// Protected: Get logged-in user's own profile
+router.get("/me", protect, getMe);
+
+// Admin: Get all users
+router.get("/admin/all", protect, authorizeRoles("admin"), getAllUsers);
+
+
+// ─── Dynamic Routes (These MUST come last) ────────────────────────────────────
+// Public: Get another user's profile by their ID
 router.get("/:id", getUserProfile);
 
-// ─── Protected Routes (any logged-in user) ────────────────────────────────────
-router.get("/me", protect, getMe);
-router.put("/:id", protect, updateUserProfile);
-
-// ─── Admin-Only Routes ────────────────────────────────────────────────────────
-// Only users whose `role` field in the DB is "admin" can access these.
-// Example: GET /api/users/admin/all  →  returns every user (for an admin dashboard)
-router.get("/admin/all", protect, authorizeRoles("admin"), getAllUsers);
+// Protected: Update a user's profile (handles both file upload and URL string)
+router.put("/:id", protect, uploadAvatar.single("avatarFile"), updateUserProfile);
 
 module.exports = router;
