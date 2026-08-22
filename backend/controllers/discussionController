@@ -6,7 +6,7 @@ const Reply = require("../models/Reply");
 const createDiscussion = async (req, res) => {
   try {
 
-    console.log("BODY:", req.body); // 👈 ADD THIS
+  
 
     const { postId, userId } = req.body;
 
@@ -28,7 +28,6 @@ const createDiscussion = async (req, res) => {
     res.json({ discussion: newDiscussion });
 
   } catch (error) {
-    console.log("ERROR:", error.message); // 👈 ADD THIS
     res.status(500).json({ error: error.message });
   }
 };
@@ -49,9 +48,7 @@ const getPostDiscussions = async (req, res) => {
 };
 
 
-// ADD REPLY
-// ADD REPLY
-// ADD REPLY
+
 // ADD REPLY
 const addReply = async (req, res) => {
   try {

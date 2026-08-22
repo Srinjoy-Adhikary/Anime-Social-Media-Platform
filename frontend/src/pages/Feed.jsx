@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import axios from "axios";
 import PostCard from "../components/post/PostCard";
+import { useAuth } from "../context/AuthContext"; // Ensure this path correctly points to your AuthContext file
 import "./Feed.css";
 
 const BREATHING_STYLES = [
@@ -11,11 +12,38 @@ const BREATHING_STYLES = [
   { name: "Stone Breathing", jp: "岩の呼吸", color: "stone", icon: "🪨" },
 ];
 
+// Sub-component to isolate inline reply states and prevent global text bleeding
+const ReplyInput = ({ onCommentAdd, parentReplyId }) => {
+  const [replyText, setReplyText] = useState("");
+
+  const handleSubmit = () => {
+    if (!replyText.trim()) return;
+    onCommentAdd(replyText, parentReplyId);
+    setReplyText("");
+  };
+
+  return (
+    <div className="reply-input-box">
+      <input
+        value={replyText}
+        onChange={(e) => setReplyText(e.target.value)}
+        placeholder="Write your reply..."
+        className="reply-input"
+        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+      />
+      <button onClick={handleSubmit} className="reply-submit">
+        ▲
+      </button>
+    </div>
+  );
+};
+
 const DemonSlayerFeed = () => {
+  const { user } = useAuth(); // ── EXTRACT LIVE REACTIVE USER CONTEXT ──
   const [selectedPost, setSelectedPost] = useState(null);
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState([]);
-  const [text, setText] = useState("");
+  const [mainCommentText, setMainCommentText] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   const [discussionId, setDiscussionId] = useState(null);
   const [collapsed, setCollapsed] = useState({});
@@ -25,6 +53,7 @@ const DemonSlayerFeed = () => {
   const scrollPosition = useRef(0);
   const containerRef = useRef(null);
 
+  // Interval rotation for breathing aesthetic
   useEffect(() => {
     const interval = setInterval(() => {
       setBreathingStyle((prev) => (prev + 1) % BREATHING_STYLES.length);
@@ -32,30 +61,25 @@ const DemonSlayerFeed = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const toggleCollapse = (commentId) => {
+  const toggleCollapse = useCallback((commentId) => {
     setCollapsed((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
-  };
+  }, []);
 
- const fetchPosts = useCallback(async () => {
-  try {
-    const userId = localStorage.getItem("userId"); // ✅ ADD THIS
-
-    const res = await axios.get(
-      `/api/posts/smartfeed/${userId}`
-    );
-
-    setPosts(res.data);
-  } catch (error) {
-    console.error("Failed to fetch posts:", error);
-  }
-}, []);
+  const fetchPosts = useCallback(async () => {
+    const currentUserId = user?.id ;
+    if (!currentUserId) return;
+    try {
+      const res = await axios.get(`/api/posts/smartfeed/${currentUserId}`);
+      setPosts(res.data);
+    } catch (error) {
+      console.error("Failed to fetch posts:", error);
+    }
+  }, [user?.id]); // Depend on user.id to refetch posts when account changes
 
   const fetchComments = useCallback(async (postId) => {
     if (!postId) return;
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/discussions/post/${postId}`
-      );
+      const res = await axios.get(`http://localhost:5000/api/discussions/post/${postId}`);
       if (res.data && res.data.length > 0) {
         setDiscussionId(res.data[0]._id);
         const repliesRes = await axios.get(
@@ -73,23 +97,23 @@ const DemonSlayerFeed = () => {
     }
   }, []);
 
+  // Sync effect for initial app mounting and cross-account logins
   useEffect(() => {
-   
-    console.log("FEED MOUNTED ✅");
     fetchPosts();
     const fetchWatchlist = async () => {
-      const userId = localStorage.getItem("userId");
-      if (!userId) return;
+      const currentUserId = user?.id || localStorage.getItem("userId");
+      if (!currentUserId) return;
       try {
-        const res = await axios.get(`http://localhost:5000/api/users/${userId}`);
+        const res = await axios.get(`http://localhost:5000/api/users/${currentUserId}`);
         setWatchlist(res.data.watchlist || []);
       } catch (error) {
         console.error("Failed to fetch watchlist:", error);
       }
     };
     fetchWatchlist();
-  }, [fetchPosts]);
+  }, [fetchPosts, user?.id]); // Triggers cleanly when context updates
 
+  // Sync effect when a unique discussion post layout is targeted
   useEffect(() => {
     if (selectedPost) {
       fetchComments(selectedPost._id);
@@ -99,9 +123,9 @@ const DemonSlayerFeed = () => {
     }
   }, [selectedPost, fetchComments]);
 
-  const updatePost = (updatedPost) => {
-    setPosts(posts.map((p) => (p._id === updatedPost._id ? updatedPost : p)));
-  };
+  const updatePost = useCallback((updatedPost) => {
+    setPosts((prevPosts) => prevPosts.map((p) => (p._id === updatedPost._id ? updatedPost : p)));
+  }, []);
 
   const handleOpenDiscussion = (post) => {
     scrollPosition.current = window.scrollY;
@@ -117,14 +141,12 @@ const DemonSlayerFeed = () => {
   };
 
   const createDiscussionForPost = async (postId) => {
+    const currentUserId = user?.id || localStorage.getItem("userId");
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/discussions/create",
-        {
-          postId,
-          userId: localStorage.getItem("userId"),
-        }
-      );
+      const res = await axios.post("http://localhost:5000/api/discussions/create", {
+        postId,
+        userId: currentUserId,
+      });
       setDiscussionId(res.data.discussion._id);
       return res.data.discussion._id;
     } catch (error) {
@@ -133,29 +155,24 @@ const DemonSlayerFeed = () => {
     }
   };
 
-  const addComment = async (parentReplyId) => {
-    if (!text.trim()) return;
-
+  const addComment = async (textToSubmit, parentReplyId = null) => {
     let currentDiscussionId = discussionId;
     if (!currentDiscussionId && selectedPost) {
       currentDiscussionId = await createDiscussionForPost(selectedPost._id);
     }
     if (!currentDiscussionId) return;
 
+    const currentUserId = user?.id || localStorage.getItem("userId");
     const newComment = {
-      content: text,
-      userId: localStorage.getItem("userId"),
+      content: textToSubmit,
+      userId: currentUserId,
       discussionId: currentDiscussionId,
       parentReply: parentReplyId,
     };
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/discussions/reply",
-        newComment
-      );
-      setComments([...comments, res.data.reply]);
-      setText("");
+      const res = await axios.post("http://localhost:5000/api/discussions/reply", newComment);
+      setComments((prevComments) => [...prevComments, res.data.reply]);
       setReplyTo(null);
     } catch (error) {
       console.error("Failed to add comment:", error);
@@ -163,27 +180,31 @@ const DemonSlayerFeed = () => {
   };
 
   const deleteComment = async (commentId) => {
+    const currentUserId = user?.id || localStorage.getItem("userId");
     try {
       await axios.delete(`http://localhost:5000/api/discussions/delete`, {
         data: {
           replyId: commentId,
-          userId: localStorage.getItem("userId"),
+          userId: currentUserId,
         },
       });
-      setComments(comments.filter((c) => c._id !== commentId));
+      setComments((prevComments) => prevComments.filter((c) => c._id !== commentId));
     } catch (error) {
       console.error("Failed to delete comment:", error);
     }
   };
 
-  const buildTree = (replies) => {
+  // Memoizing the tree structure computation so it only fires when comment data modifies
+  const commentTree = useMemo(() => {
     const map = {};
     const roots = [];
-    if (!replies) return roots;
-    replies.forEach((r) => {
+    if (!comments) return roots;
+
+    comments.forEach((r) => {
       map[r._id] = { ...r, children: [] };
     });
-    replies.forEach((r) => {
+
+    comments.forEach((r) => {
       if (r.parentReply && map[r.parentReply]) {
         map[r.parentReply].children.push(map[r._id]);
       } else {
@@ -191,44 +212,31 @@ const DemonSlayerFeed = () => {
       }
     });
     return roots;
-  };
+  }, [comments]);
 
   const renderComments = (nodes, depth = 0) => {
     return nodes.map((c) => {
       const isCollapsed = collapsed[c._id];
       return (
-        <div
-          key={c._id}
-          className="comment-wrapper"
-          style={{ "--depth": depth }}
-        >
+        <div key={c._id} className="comment-wrapper" style={{ "--depth": depth }}>
           <div className="comment-container">
             <div className="comment-avatar">
               {c.userId?.username?.[0]?.toUpperCase() ?? "鬼"}
             </div>
             <div className="comment-body">
-              <div
-                className="comment-header"
-                onClick={() => toggleCollapse(c._id)}
-              >
-                <span className="username">
-                  @{c.userId?.username || "anon"}
-                </span>
-                <span className="collapse-indicator">
-                  {isCollapsed ? "[+]" : "[−]"}
-                </span>
+              <div className="comment-header" onClick={() => toggleCollapse(c._id)}>
+                <span className="username">@{c.userId?.username || "anon"}</span>
+                <span className="collapse-indicator">{isCollapsed ? "[+]" : "[−]"}</span>
               </div>
               {!isCollapsed && (
                 <>
                   <div className="comment-text">{c.content}</div>
                   <div className="comment-actions">
-                    <button
-                      className="action-btn"
-                      onClick={() => setReplyTo(c._id)}
-                    >
+                    <button className="action-btn" onClick={() => setReplyTo(c._id)}>
                       ↩ REPLY
                     </button>
-                    {c.userId?._id === localStorage.getItem("userId") && (
+                    {/* ── UPDATED LOGIC TO MATCH INTERFACE WITH THE LIVE LOGGED-IN CONTEXT USER ── */}
+                    {c.userId?._id === user?.id && (
                       <button
                         className="action-btn delete-btn"
                         onClick={() => deleteComment(c._id)}
@@ -245,26 +253,9 @@ const DemonSlayerFeed = () => {
           {!isCollapsed && (
             <div className="comment-children">
               {replyTo === c._id && (
-                <div className="reply-input-box">
-                  <input
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Write your reply..."
-                    className="reply-input"
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && addComment(c._id)
-                    }
-                  />
-                  <button
-                    onClick={() => addComment(c._id)}
-                    className="reply-submit"
-                  >
-                    ^
-                  </button>
-                </div>
+                <ReplyInput onCommentAdd={addComment} parentReplyId={c._id} />
               )}
-              {c.children?.length > 0 &&
-                renderComments(c.children, depth + 1)}
+              {c.children?.length > 0 && renderComments(c.children, depth + 1)}
             </div>
           )}
         </div>
@@ -273,47 +264,37 @@ const DemonSlayerFeed = () => {
   };
 
   const currentStyle = BREATHING_STYLES[breathingStyle];
+
   return (
-    <div 
-      className="demon-feed-container" 
+    <div
+      className="demon-feed-container"
       ref={containerRef}
       style={{ "--breathing-color": `var(--${currentStyle.color})` }}
     >
-      {/* Blood splatter background effect */}
       <div className="blood-splatter" aria-hidden="true" />
       <div className="demon-aura" aria-hidden="true" />
       <div className="breathing-effect" aria-hidden="true" />
 
       <div className="demon-feed-layout">
-        {/* LEFT: FEED */}
+        {/* LEFT FEED PANEL */}
         <div className="feed-column">
           <header className="feed-header">
             <div className="breathing-indicator">
               <span className="breathing-name">{currentStyle.jp}</span>
               <span className="breathing-roman">{currentStyle.name}</span>
             </div>
-
             <h1 className="feed-title">
               <span className="title-kanji">OTAKU VERSE</span>
               <span className="title-main">惡鬼滅殺 </span>
-              <span className="title-kanji"></span>
             </h1>
-
             <div className="sword-divider" />
-
-            <div className="episode-badge">
-            </div>
-
-            <p className="feed-tagline">
-              Infinity Castle
-            </p>
+            <p className="feed-tagline">Infinity Castle</p>
           </header>
 
           <div className="posts-container">
             {selectedPost ? (
               <div className="selected-post-wrapper">
                 <PostCard
-                  key={selectedPost._id}
                   post={selectedPost}
                   updatePost={updatePost}
                   setSelectedPost={handleOpenDiscussion}
@@ -332,7 +313,7 @@ const DemonSlayerFeed = () => {
                     updatePost={updatePost}
                     setSelectedPost={handleOpenDiscussion}
                     watchlist={watchlist}
-                    setWatchlist={setWatchlist} 
+                    setWatchlist={setWatchlist}
                   />
                 </div>
               ))
@@ -340,30 +321,24 @@ const DemonSlayerFeed = () => {
           </div>
         </div>
 
-        {/* RIGHT: DISCUSSION */}
+        {/* RIGHT DISCUSSION WORKSPACE */}
         <div className={`discussion-column ${selectedPost ? "active" : ""}`}>
           {selectedPost && (
             <div className="discussion-wrapper">
               <button className="back-btn" onClick={handleCloseDiscussion}>
                 <span className="katana-slash">Back</span>
-                <span className="back-text" to feed></span>
               </button>
 
-              <h2 className="discussion-title">
-                {selectedPost.title || "Discussion"}
-              </h2>
-
+              <h2 className="discussion-title">{selectedPost.title || "Discussion"}</h2>
               <div className="demon-mark-divider" />
 
               <div className="discussion-content">
                 <div className="comments-section">
                   {comments.length > 0 ? (
-                    renderComments(buildTree(comments))
+                    renderComments(commentTree)
                   ) : (
                     <div className="no-comments">
-                      <p className="no-comments-text">
-                        empty... for now.
-                      </p>
+                      <p className="no-comments-text">empty... for now.</p>
                       <p className="no-comments-sub">
                         Share your thoughts and start the conversation!
                       </p>
@@ -373,16 +348,24 @@ const DemonSlayerFeed = () => {
 
                 <div className="comment-input-section">
                   <input
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    value={mainCommentText}
+                    onChange={(e) => setMainCommentText(e.target.value)}
                     placeholder="Share your thoughts.."
                     className="main-comment-input"
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && addComment(null)
-                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && mainCommentText.trim()) {
+                        addComment(mainCommentText, null);
+                        setMainCommentText("");
+                      }
+                    }}
                   />
                   <button
-                    onClick={() => addComment(null)}
+                    onClick={() => {
+                      if (mainCommentText.trim()) {
+                        addComment(mainCommentText, null);
+                        setMainCommentText("");
+                      }
+                    }}
                     className="submit-btn"
                   >
                     ▲ submit

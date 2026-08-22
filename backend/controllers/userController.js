@@ -1,8 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcrypt"); // Or 'bcryptjs' depending on what you used for registration
 const cloudinary = require("../config/cloudinary"); 
-// @desc    Get user profile
-// @route   GET /api/users/:id
+
 const getUserProfile = async (req, res) => {
   try {
     // We use .select('-password') to ensure we never send the hashed password to the frontend
@@ -43,7 +42,7 @@ const getAllUsers = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// Add this inside userController.js
+
 const getMe = async (req, res) => {
   try {
     // Notice we use req.user.id (from the cookie), NOT req.params.id (from the URL)
@@ -59,8 +58,7 @@ const getMe = async (req, res) => {
   }
 };
 
-// @desc    Update user profile
-// @route   PUT /api/users/:id
+
 
 const updateUserProfile = async (req, res) => {
   try {

@@ -33,8 +33,7 @@ const getFeed = async (req, res) => {
       .lean(); 
 
     const feed = posts.map(post => {
-      // 📝 BACKEND LOG: Check your Terminal (not browser console)
-      console.log(`[BACKEND] Post: ${post.title} | User:`, post.user);
+     
 
       const animeEntry = user.watchlist.find(a => a.title === post.anime);
       let hidden = false;
@@ -63,7 +62,7 @@ const getSmartFeed = async (req, res) => {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
       .populate("user", "username")
-      .lean(); // 🔥 FIXED: Added .lean()
+      .lean(); 
 
     const discussions = await Discussion.find();
     const watchlist = user.watchlist.map(a => a.title);

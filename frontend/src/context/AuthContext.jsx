@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
         const { data } = await axios.get('/api/users/me');
         setUser({ id: data._id, username: data.username, role: data.role });
       } catch {
-        setUser(null); // Not logged in or token expired
+        setUser(null);
       } finally {
         setLoading(false);
       }

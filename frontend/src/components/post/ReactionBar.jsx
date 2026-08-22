@@ -5,13 +5,11 @@ function ReactionBar({ post, updatePost }) {
   const react = async (reactionType) => {
     try {
 
-      const res = await axios.post(
-        `/api/posts/${post._id}/react`,
-        {
-          userId: "demoUser",   // temporary user
-          reaction: reactionType
-        }
-      );
+     const res = await axios.post(
+  `/api/posts/${post._id}/react`,
+  { reaction: reactionType },
+  { withCredentials: true } 
+);
 
       updatePost(res.data);
 

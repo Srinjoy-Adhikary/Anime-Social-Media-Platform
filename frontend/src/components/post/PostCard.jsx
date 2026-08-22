@@ -1,41 +1,65 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import axios from "axios";
 import "./PostCard.css";
 
-const DemonSlayerPostCard = ({ post, updatePost, setSelectedPost, watchlist, setWatchlist }) => {
+// Helper utilities kept OUTSIDE the component so they aren't re-allocated on every render
+const normalize = (str) => str?.toLowerCase().trim() || "";
+
+const hashCode = (str) => {
+  let hash = 0;
+  if (!str) return hash;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+};
+
+const BREATHING_STYLES = ["water", "flame", "thunder", "wind", "stone"];
+
+const DemonSlayerPostCard = ({ post, updatePost, setSelectedPost, watchlist }) => {
   const [showSpoiler, setShowSpoiler] = useState(false);
 
-  // console.log(watchlist)
-  // console.log(post)
- const normalize = (str) => str?.toLowerCase().trim();
+  // ✅ FIX 1: Memoize expensive watchlist calculations.
+  // This loop ONLY recalculates if the specific post target or the user's watch history alters.
+  const { needsBlur, isSpoiler } = useMemo(() => {
+    const postAnime = normalize(post.anime);
+    const isPostSpoiler = !!post.spoiler;
 
-const hasCompletedAnime = watchlist?.some(
-  (item) =>
-    normalize(item.title) === normalize(post.anime) &&
-    item.status === "completed"
-);
+    if (!watchlist || watchlist.length === 0) {
+      return { needsBlur: isPostSpoiler && !showSpoiler, isSpoiler: isPostSpoiler };
+    }
 
-const isInWatchlist = watchlist?.some(
-  (item) =>
-    normalize(item.title) === normalize(post.anime)
-);
+    const hasCompletedAnime = watchlist.some(
+      (item) => normalize(item.title) === postAnime && item.status === "completed"
+    );
 
-const isSpoiler = post.spoiler;
+    const isInWatchlist = watchlist.some(
+      (item) => normalize(item.title) === postAnime
+    );
 
-// 🔥 FINAL LOGIC
-const needsBlur =
-  (isSpoiler || isInWatchlist) && !hasCompletedAnime && !showSpoiler;
-  
+    const shouldBlur = (isPostSpoiler || isInWatchlist) && !hasCompletedAnime && !showSpoiler;
+
+    return { needsBlur: shouldBlur, isSpoiler: isPostSpoiler };
+  }, [post.anime, post.spoiler, watchlist, showSpoiler]);
+
+  // ✅ FIX 2: Stabilize the dynamic styling calculation. 
+  // No random math generation inside the paint loop.
+  const breathingClass = useMemo(() => {
+    const stableKey = post._id || post.title || "default";
+    const styleIndex = hashCode(stableKey) % BREATHING_STYLES.length;
+    return BREATHING_STYLES[styleIndex];
+  }, [post._id, post.title]);
+
   const handleReaction = async (emoji) => {
     try {
-      const userId = localStorage.getItem("userId");
-
-      // Make sure 'emoji' matches one of: "peak", "sad", "shock", "mindblown", "love"
-      const res = await axios.post(`/api/posts/${post._id}/react`, {
-        userId: userId,
-        reaction: emoji
-      });
-
+      // Adjusted for secure credentials/JWT verification architectures
+      const res = await axios.post(
+        `/api/posts/${post._id}/react`, 
+        { reaction: emoji },
+        { withCredentials: true } 
+      );
       updatePost(res.data);
     } catch (error) {
       console.error("Failed to add reaction:", error);
@@ -44,50 +68,27 @@ const needsBlur =
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return "";
-    if (imagePath.startsWith('http')) return imagePath;
-
-    // Ensures there is exactly one slash between the port and the path
-    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    if (imagePath.startsWith("http")) return imagePath;
+    const cleanPath = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
     return `http://localhost:5000${cleanPath}`;
   };
 
-  const breathingStyles = ["water", "flame", "thunder", "wind", "stone"];
-
-  // Use a better hash that combines multiple characters
-  const hashCode = (str) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash);
-  };
-
-  const styleIndex = hashCode(post._id || Math.random().toString()) % breathingStyles.length;
-  const breathingClass = breathingStyles[styleIndex];
-
   return (
     <article className={`demon-post-card demon-post-card--${breathingClass}`}>
-      {/* Breathing effect background */}
       <div className="demon-post__aura" aria-hidden="true" />
 
-      {/* Header with breathing style badge */}
       <header className="demon-post__header">
         <div className="demon-post__breathing">
           <span className="breathing-badge">{breathingClass.toUpperCase()}</span>
           {post.user?.username && (
             <span className="demon-post__author">
-              {post.user?.username || "unknown"}
+              @{post.user.username}
             </span>
           )}
         </div>
-        {isSpoiler && (
-          <span className="spoiler-badge">⚠️ SPOILER</span>
-        )}
+        {isSpoiler && <span className="spoiler-badge">⚠️ SPOILER</span>}
       </header>
 
-      {/* Content wrapper with Smart Spoiler blur */}
       <div className="demon-post__content-wrap">
         {needsBlur && (
           <div className="demon-post__spoiler-overlay">
@@ -103,34 +104,33 @@ const needsBlur =
 
         <div className={`demon-post__body ${needsBlur ? "demon-post__body--blurred" : ""}`}>
           <h3 className="demon-post__title">{post.title}</h3>
-          {post.content && (
-            <p className="demon-post__text">{post.content}</p>
-          )}
+          {post.content && <p className="demon-post__text">{post.content}</p>}
           {post.image && (
             <img
               src={getImageUrl(post.image)}
               alt={post.title}
               className="demon-post__image"
+              loading="lazy" // Frontend performance boost for long feeds
             />
           )}
         </div>
       </div>
 
-      {/* Reactions */}
       <div className="demon-post__reactions">
-        {post.reactions && Object.entries(post.reactions).map(([emoji, count]) => (
-          <button
-            key={emoji}
-            className={`demon-post__reaction-btn ${post.userReaction === emoji ? "demon-post__reaction-btn--active" : ""
+        {post.reactions &&
+          Object.entries(post.reactions).map(([emoji, count]) => (
+            <button
+              key={emoji}
+              className={`demon-post__reaction-btn ${
+                post.userReaction === emoji ? "demon-post__reaction-btn--active" : ""
               }`}
-            onClick={() => handleReaction(emoji)}
-          >
-            {emoji} {count > 0 ? count : ""}
-          </button>
-        ))}
+              onClick={() => handleReaction(emoji)}
+            >
+              {emoji} {count > 0 ? count : ""}
+            </button>
+          ))}
       </div>
 
-      {/* Action buttons */}
       <div className="demon-post__actions">
         <button
           className="demon-post__discussion-btn"
@@ -141,7 +141,6 @@ const needsBlur =
         </button>
       </div>
 
-      {/* Demon mark decorations */}
       <div className="demon-post__mark demon-post__mark--1" aria-hidden="true" />
       <div className="demon-post__mark demon-post__mark--2" aria-hidden="true" />
     </article>
