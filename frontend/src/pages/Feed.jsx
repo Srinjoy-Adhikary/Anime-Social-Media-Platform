@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import axios from "axios";
+import API from "../api/axios"; // Centralized Axios instance with VITE_API_URL + credentials
 import PostCard from "../components/post/PostCard";
-import { useAuth } from "../context/AuthContext"; // Ensure this path correctly points to your AuthContext file
+import { useAuth } from "../context/AuthContext";
 import "./Feed.css";
 
 const BREATHING_STYLES = [
@@ -39,7 +39,7 @@ const ReplyInput = ({ onCommentAdd, parentReplyId }) => {
 };
 
 const DemonSlayerFeed = () => {
-  const { user } = useAuth(); // ── EXTRACT LIVE REACTIVE USER CONTEXT ──
+  const { user } = useAuth(); // Live reactive user context
   const [selectedPost, setSelectedPost] = useState(null);
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState([]);
@@ -66,25 +66,23 @@ const DemonSlayerFeed = () => {
   }, []);
 
   const fetchPosts = useCallback(async () => {
-    const currentUserId = user?.id ;
+    const currentUserId = user?.id;
     if (!currentUserId) return;
     try {
-      const res = await axios.get(`/api/posts/smartfeed/${currentUserId}`);
+      const res = await API.get(`/posts/smartfeed/${currentUserId}`);
       setPosts(res.data);
     } catch (error) {
       console.error("Failed to fetch posts:", error);
     }
-  }, [user?.id]); // Depend on user.id to refetch posts when account changes
+  }, [user?.id]);
 
   const fetchComments = useCallback(async (postId) => {
     if (!postId) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/discussions/post/${postId}`);
+      const res = await API.get(`/discussions/post/${postId}`);
       if (res.data && res.data.length > 0) {
         setDiscussionId(res.data[0]._id);
-        const repliesRes = await axios.get(
-          `http://localhost:5000/api/discussions/replies/${res.data[0]._id}`
-        );
+        const repliesRes = await API.get(`/discussions/replies/${res.data[0]._id}`);
         setComments(repliesRes.data);
       } else {
         setComments([]);
@@ -97,23 +95,23 @@ const DemonSlayerFeed = () => {
     }
   }, []);
 
-  // Sync effect for initial app mounting and cross-account logins
+  // Initial sync & watchlist fetch
   useEffect(() => {
     fetchPosts();
     const fetchWatchlist = async () => {
       const currentUserId = user?.id || localStorage.getItem("userId");
       if (!currentUserId) return;
       try {
-        const res = await axios.get(`http://localhost:5000/api/users/${currentUserId}`);
+        const res = await API.get(`/users/${currentUserId}`);
         setWatchlist(res.data.watchlist || []);
       } catch (error) {
         console.error("Failed to fetch watchlist:", error);
       }
     };
     fetchWatchlist();
-  }, [fetchPosts, user?.id]); // Triggers cleanly when context updates
+  }, [fetchPosts, user?.id]);
 
-  // Sync effect when a unique discussion post layout is targeted
+  // Sync discussion comments when a post is opened
   useEffect(() => {
     if (selectedPost) {
       fetchComments(selectedPost._id);
@@ -143,7 +141,7 @@ const DemonSlayerFeed = () => {
   const createDiscussionForPost = async (postId) => {
     const currentUserId = user?.id || localStorage.getItem("userId");
     try {
-      const res = await axios.post("http://localhost:5000/api/discussions/create", {
+      const res = await API.post("/discussions/create", {
         postId,
         userId: currentUserId,
       });
@@ -171,7 +169,7 @@ const DemonSlayerFeed = () => {
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/api/discussions/reply", newComment);
+      const res = await API.post("/discussions/reply", newComment);
       setComments((prevComments) => [...prevComments, res.data.reply]);
       setReplyTo(null);
     } catch (error) {
@@ -182,7 +180,7 @@ const DemonSlayerFeed = () => {
   const deleteComment = async (commentId) => {
     const currentUserId = user?.id || localStorage.getItem("userId");
     try {
-      await axios.delete(`http://localhost:5000/api/discussions/delete`, {
+      await API.delete("/discussions/delete", {
         data: {
           replyId: commentId,
           userId: currentUserId,
@@ -194,7 +192,7 @@ const DemonSlayerFeed = () => {
     }
   };
 
-  // Memoizing the tree structure computation so it only fires when comment data modifies
+  // Memoize comment nesting tree
   const commentTree = useMemo(() => {
     const map = {};
     const roots = [];
@@ -235,7 +233,6 @@ const DemonSlayerFeed = () => {
                     <button className="action-btn" onClick={() => setReplyTo(c._id)}>
                       ↩ REPLY
                     </button>
-                    {/* ── UPDATED LOGIC TO MATCH INTERFACE WITH THE LIVE LOGGED-IN CONTEXT USER ── */}
                     {c.userId?._id === user?.id && (
                       <button
                         className="action-btn delete-btn"

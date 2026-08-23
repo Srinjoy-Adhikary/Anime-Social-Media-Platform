@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api/axios'; // Centralized Axios instance with VITE_API_URL + credentials
 import { useAuth, EMAIL_REGEX, PASSWORD_REGEX } from '../context/AuthContext';
 import './Auth.css';
 
@@ -12,17 +12,13 @@ function Login() {
     const location   = useLocation();
     const { login, user }         = useAuth();
 
-    // Where to go after login (supports redirect-back from ProtectedRoute)
     const from = location.state?.from?.pathname || '/feed';
 
-    // If already logged in, skip straight to feed
     useEffect(() => {
         if (user) navigate(from, { replace: true });
     }, [user, navigate, from]);
 
     const [formData, setFormData] = useState({ username: '', email: '', password: '' });
-
-    // ── Inline validation errors ──────────────────────────────────────────────
     const [errors,     setErrors]     = useState({});
     const [serverError, setServerError] = useState('');
     const [submitting, setSubmitting]  = useState(false);
@@ -30,13 +26,10 @@ function Login() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(p => ({ ...p, [name]: value }));
-
-        // Clear the error for this field as the user types
         setErrors(p => ({ ...p, [name]: '' }));
         setServerError('');
     };
 
-    // ── Client-side validation (mirrors backend regex) ────────────────────────
     const validate = () => {
         const errs = {};
 
@@ -57,7 +50,6 @@ function Login() {
         return errs;
     };
 
-    // ── Submit ────────────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
         setServerError('');
@@ -71,19 +63,17 @@ function Login() {
         setSubmitting(true);
         try {
             if (isLogin) {
-                // login() is from AuthContext — sets user state + cookies automatically
                 await login(formData.email, formData.password);
                 navigate(from, { replace: true });
             } else {
-                await axios.post('/api/auth/register', {
+                await API.post('/api/auth/register', {
                     username: formData.username,
                     email:    formData.email,
                     password: formData.password,
                 });
                 setFormData({ username: '', email: '', password: '' });
                 setIsLogin(true);
-                setServerError(''); // reuse field to show success in green
-                // Use a success state instead of alert
+                setServerError('');
                 setErrors({ _success: 'Soul Badge forged. You may now enter.' });
             }
         } catch (error) {
@@ -94,7 +84,6 @@ function Login() {
         }
     };
 
-    // ── Particle engine (unchanged) ───────────────────────────────────────────
     useEffect(() => {
         const canvas = canvasRef.current;
         const ctx    = canvas.getContext('2d');
@@ -152,7 +141,6 @@ function Login() {
         };
     }, [isLogin]);
 
-    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className={`tybw-wrapper ${isLogin ? 'soul-reaper-mode' : 'quincy-mode'}`}>
             <canvas ref={canvasRef} id="reiatsu-bg" />
@@ -171,21 +159,18 @@ function Login() {
                             {isLogin ? 'UNLOCK THE SEIREITEI' : 'Awaken Your Power'}
                         </p>
 
-                        {/* ── Server / global error ── */}
                         {serverError && (
                             <p style={{ color: '#ff4466', fontSize: '.72rem', letterSpacing: '1.5px', textAlign: 'center', margin: '0 0 12px', padding: '8px 12px', background: 'rgba(255,0,60,.08)', border: '1px solid rgba(255,0,60,.22)', borderRadius: 2 }}>
                                 {serverError}
                             </p>
                         )}
 
-                        {/* ── Success message ── */}
                         {errors._success && (
                             <p style={{ color: '#4caf82', fontSize: '.72rem', letterSpacing: '1.5px', textAlign: 'center', margin: '0 0 12px', padding: '8px 12px', background: 'rgba(76,175,130,.08)', border: '1px solid rgba(76,175,130,.22)', borderRadius: 2 }}>
                                 {errors._success}
                             </p>
                         )}
 
-                        {/* ── Username (register only) ── */}
                         {!isLogin && (
                             <div className="reiatsu-input-group">
                                 <input
@@ -202,7 +187,6 @@ function Login() {
                             </div>
                         )}
 
-                        {/* ── Email ── */}
                         <div className="reiatsu-input-group">
                             <input
                                 type="email"
@@ -217,7 +201,6 @@ function Login() {
                             {errors.email && <FieldError msg={errors.email} />}
                         </div>
 
-                        {/* ── Password ── */}
                         <div className="reiatsu-input-group">
                             <input
                                 type="password"
@@ -260,7 +243,6 @@ function Login() {
     );
 }
 
-// ── Tiny inline field-error label ────────────────────────────────────────────
 function FieldError({ msg }) {
     return (
         <span style={{

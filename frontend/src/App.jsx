@@ -1,15 +1,15 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import axios from "axios";
 
-// ─── Axios global defaults ────────────────────────────────────────────────────
+// ─── Dynamic Axios Global Defaults ────────────────────────────────────────────
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = "http://localhost:5000";
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute   from "./components/ProtectedRoute";
 
-// ─── Pages & components ───────────────────────────────────────────────────────
+// ─── Pages & Components ───────────────────────────────────────────────────────
 import Login      from "./pages/Login";
 import Feed       from "./pages/Feed";
 import CreatePost from "./pages/CreatePost";
@@ -19,8 +19,6 @@ import Profile    from "./pages/Profile";
 
 function App() {
   return (
-    // AuthProvider must wrap Router so the Axios interceptor fires before any
-    // route renders, and useAuth() is available everywhere inside the tree.
     <AuthProvider>
       <Router>
         <Navbar />
@@ -29,27 +27,42 @@ function App() {
           {/* ── Public ── */}
           <Route path="/" element={<Login />} />
 
-          {/* ── Protected (any logged-in user) ── */}
-          <Route path="/feed" element={
-            <ProtectedRoute><Feed /></ProtectedRoute>
-          } />
+          {/* ── Protected ── */}
+          <Route
+            path="/feed"
+            element={
+              <ProtectedRoute>
+                <Feed />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/create" element={
-            <ProtectedRoute><CreatePost /></ProtectedRoute>
-          } />
+          <Route
+            path="/create"
+            element={
+              <ProtectedRoute>
+                <CreatePost />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/search" element={
-            <ProtectedRoute><Search /></ProtectedRoute>
-          } />
+          <Route
+            path="/search"
+            element={
+              <ProtectedRoute>
+                <Search />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/profile/:id?" element={
-            <ProtectedRoute><Profile /></ProtectedRoute>
-          } />
-
-          {/* ── Admin-only example ── */}
-          {/* <Route path="/admin" element={
-            <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>
-          } /> */}
+          <Route
+            path="/profile/:id?"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>

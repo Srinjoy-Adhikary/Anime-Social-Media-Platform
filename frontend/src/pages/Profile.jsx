@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api/axios'; // Centralized Axios instance with VITE_API_URL + credentials
 import { useAuth } from '../context/AuthContext';
 
 // ─── GEAR 5 / CONQUEROR'S HAKI PALETTE ───────────────────────────────────────
@@ -86,12 +86,6 @@ const inputBase = {
   fontFamily: "'Cinzel',serif", fontSize: '.82rem', transition: 'border-color .2s, box-shadow .2s',
 };
 
-// Configure Axios Defaults globally or locally for authentication credentials
-const API = axios.create({
-  baseURL: 'http://localhost:5000',
-  withCredentials: true
-});
-
 export default function Profile() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -107,7 +101,6 @@ export default function Profile() {
   const [formData, setFormData] = useState({ username: '', email: '', bio: '', avatar: '', password: '', avatarFile: null });
   const [saveError, setSaveError] = useState('');
 
-  // Use Memoized Status mapping to avoid re-calculating on input strokes
   const STATUS = useMemo(() => ({
     watching:      { label: 'WATCHING',      color: '#d4aa3c', bg: 'rgba(212,170,60,.10)', border: 'rgba(212,170,60,.32)' },
     completed:     { label: 'COMPLETED',     color: '#4caf82', bg: 'rgba(76,175,130,.10)', border: 'rgba(76,175,130,.28)' },
@@ -121,7 +114,7 @@ export default function Profile() {
     let isMounted = true;
     (async () => {
       try {
-        const endpoint = isOwnProfile ? '/api/users/me' : `/api/users/${id}`;
+        const endpoint = isOwnProfile ? '/users/me' : `/users/${id}`;
         const { data } = await API.get(endpoint);
         
         if (isMounted) {
@@ -170,14 +163,14 @@ export default function Profile() {
         fd.append("avatarFile", formData.avatarFile);
         if (formData.password) fd.append("password", formData.password);
 
-        response = await API.put(`/api/users/${profileId}`, fd, {
+        response = await API.put(`/users/${profileId}`, fd, {
           headers: { "Content-Type": "multipart/form-data" }
         });
       } else {
         const payload = { ...formData };
         delete payload.avatarFile;
         if (!payload.password) delete payload.password;
-        response = await API.put(`/api/users/${profileId}`, payload);
+        response = await API.put(`/users/${profileId}`, payload);
       }
 
       setUser(response.data);
@@ -193,7 +186,7 @@ export default function Profile() {
   const onUpdateStatus = async (anime) => {
     try {
       const status = watchlistStatuses[anime.animeId] || anime.status;
-      await API.post('/api/watchlist/add', {
+      await API.post('/watchlist/add', {
         userId: authUser.id, animeId: anime.animeId,
         title: anime.title, image: anime.image, genres: anime.genres, status,
       });
@@ -204,7 +197,7 @@ export default function Profile() {
   const onRemove = async (animeId) => {
     if (!window.confirm('Remove this title from your list?')) return;
     try {
-      await API.delete('/api/watchlist/remove', { data: { userId: authUser.id, animeId } });
+      await API.delete('/watchlist/remove', { data: { userId: authUser.id, animeId } });
       setUser(p => ({ ...p, watchlist: p.watchlist.filter(i => i.animeId !== animeId) }));
       setWatchlistStatuses(p => { const n = { ...p }; delete n[animeId]; return n; });
     } catch (e) { console.error(e); }
@@ -313,13 +306,11 @@ export default function Profile() {
                 </div>
               ))}
 
-              {/* Legendary Bio Field Added */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <label style={{ fontSize: '.56rem', letterSpacing: '3px', color: C.goldDim, fontWeight: 600 }}>BIOGRAPHY</label>
                 <textarea name="bio" value={formData.bio || ''} onChange={onInput} rows={3} style={{ ...inputBase, resize: 'none' }} />
               </div>
 
-              {/* Avatar upload setup */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <label style={{ fontSize: '.56rem', letterSpacing: '3px', color: C.goldDim, fontWeight: 600 }}>AVATAR</label>
                 <label style={{
