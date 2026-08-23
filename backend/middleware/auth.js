@@ -1,13 +1,16 @@
 const jwt = require("jsonwebtoken");
 
 // ─── protect ─────────────────────────────────────────────────────────────────
-// Verifies the short-lived access token from the cookie.
+// Verifies the access token from Authorization header or cookie.
 // Strictly returns JSON/HTTP error codes for SPA/React consumption.
 const protect = (req, res, next) => {
-  const token = req.cookies.token;
+  const authHeader = req.headers.authorization;
+  const token =
+    (authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null) ||
+    req.cookies?.token;
 
   if (!token) {
-    return res.status(401).json({ message: "Not authorized, no token" });
+    return res.status(401).json({ message: "Not authorized, no token provided" });
   }
 
   try {
@@ -24,9 +27,7 @@ const protect = (req, res, next) => {
   }
 };
 
-// ─── authorizeRoles ───────────────────────────────────────────────────────────
-// Usage: router.delete("/post/:id", protect, authorizeRoles("admin"), deletePost)
-// Pass one or more allowed roles as arguments.
+
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {

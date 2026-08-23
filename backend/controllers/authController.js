@@ -85,7 +85,6 @@ const registerUser = async (req, res) => {
 };
 
 // ─── Login ───────────────────────────────────────────────────────────────────
-// Lockout constants
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -112,7 +111,6 @@ const loginUser = async (req, res) => {
     // 3. Password check
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      // Increment failed attempts
       user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
 
       if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
@@ -140,6 +138,7 @@ const loginUser = async (req, res) => {
 
     res.json({
       message: "Login successful",
+      token: accessToken,
       user: { id: user._id, username: user.username, role: user.role },
     });
   } catch (error) {
@@ -149,7 +148,7 @@ const loginUser = async (req, res) => {
 
 // ─── Refresh Token ───────────────────────────────────────────────────────────
 const refreshToken = (req, res) => {
-  const token = req.cookies.refreshToken;
+  const token = req.cookies?.refreshToken;
 
   if (!token) {
     return res.status(401).json({ message: "No refresh token provided" });
@@ -172,7 +171,10 @@ const refreshToken = (req, res) => {
       maxAge: 15 * 60 * 1000,
     });
 
-    res.json({ message: "Token refreshed" });
+    res.json({
+      message: "Token refreshed",
+      token: newAccessToken,
+    });
   } catch (error) {
     // Refresh token is invalid or expired — force re-login
     res.clearCookie("token", {
