@@ -18,7 +18,6 @@ function CreatePost() {
   const [animeResults, setAnimeResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Handle text and checkbox inputs
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -27,15 +26,13 @@ function CreatePost() {
     }));
   };
 
-  // Handle image upload
   const handleImage = (e) => {
     setFormData((prev) => ({
       ...prev,
-      image: e.target.files[0],
+      image: e.target.files[0] || null,
     }));
   };
 
-  // 🔍 Anime Search (Backend Proxy)
   const searchAnime = async (query) => {
     if (!query.trim()) {
       setAnimeResults([]);
@@ -46,25 +43,22 @@ function CreatePost() {
       const res = await API.get(`/api/anime/search?q=${encodeURIComponent(query)}`);
       setAnimeResults(res.data || []);
     } catch (err) {
-      console.error("Failed to fetch anime suggestions:", err);
+      console.error("Failed to search anime:", err);
     }
   };
 
-  // Select anime
   const selectAnime = (title) => {
     setFormData((prev) => ({ ...prev, anime: title }));
     setAnimeResults([]);
   };
 
-  // 🚀 Submit Post
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const currentUserId = user?.id || localStorage.getItem("userId");
-
     if (!currentUserId) {
       alert("You must be logged in to post!");
-      navigate("/login");
+      navigate("/");
       return;
     }
 
@@ -98,24 +92,16 @@ function CreatePost() {
 
   return (
     <div style={styles.jjkDomain}>
-      {/* Three-Way Sendai Deadlock Panels */}
-      <div style={{ ...styles.mangaPanel, ...styles.sendaiPanel1 }}></div>
-      <div style={{ ...styles.mangaPanel, ...styles.sendaiPanel2 }}></div>
-      <div style={{ ...styles.mangaPanel, ...styles.sendaiPanel3 }}></div>
-
-      {/* Left Flank Details */}
       <div style={styles.leftFlank}>
         <div style={styles.giantKanjiBlue}>領域展開</div>
         <div style={styles.subKanji}>仙台結界</div>
       </div>
 
-      {/* Right Flank Details */}
       <div style={styles.rightFlank}>
         <div style={styles.giantKanjiRed}>特級</div>
         <div style={styles.subKanji}>完全顕現</div>
       </div>
 
-      {/* Spatial Distortions */}
       <div style={styles.spatialDistortion1}></div>
       <div style={styles.spatialDistortion2}></div>
 
@@ -128,7 +114,6 @@ function CreatePost() {
         <p style={styles.subHeader}>Anomalies are everywhere</p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Cursed Title Input */}
           <div style={styles.inputWrapper}>
             <input
               type="text"
@@ -141,7 +126,6 @@ function CreatePost() {
             />
           </div>
 
-          {/* Cursed Content Textarea */}
           <div style={styles.inputWrapper}>
             <textarea
               name="content"
@@ -153,7 +137,6 @@ function CreatePost() {
             />
           </div>
 
-          {/* Six Eyes Search */}
           <div style={styles.inputWrapper}>
             <input
               type="text"
@@ -162,7 +145,6 @@ function CreatePost() {
               style={styles.jjkSearchInput}
             />
 
-            {/* Dropdown */}
             {animeResults.length > 0 && (
               <div style={styles.jjkDropdown}>
                 {animeResults.map((anime) => (
@@ -178,17 +160,15 @@ function CreatePost() {
             )}
           </div>
 
-          {/* Tag Pill */}
           {formData.anime && (
             <div style={styles.blackFlashPillContainer}>
               <span style={styles.blackFlashPill}>TAG: {formData.anime}</span>
             </div>
           )}
 
-          {/* Action Row */}
           <div style={styles.actionRow}>
             <label style={styles.cursedToolUpload}>
-              <span style={styles.uploadIcon}></span> UPLOAD IMAGE
+              UPLOAD IMAGE
               <input
                 type="file"
                 onChange={handleImage}
@@ -209,7 +189,6 @@ function CreatePost() {
             </label>
           </div>
 
-          {/* Image Preview */}
           {formData.image && (
             <div style={styles.blackFlashPreviewContainer}>
               <img
@@ -220,7 +199,6 @@ function CreatePost() {
             </div>
           )}
 
-          {/* Black Flash Submit Button */}
           <button type="submit" style={styles.blackFlashButton} disabled={loading}>
             {loading ? "MANIFESTING..." : "Submit"}
           </button>
@@ -462,10 +440,6 @@ const styles = {
     textTransform: "uppercase",
     letterSpacing: "1px",
   },
-  uploadIcon: {
-    fontSize: "1.2rem",
-    color: "#777",
-  },
   spoilerCheckboxLabel: {
     display: "flex",
     alignItems: "center",
@@ -506,8 +480,7 @@ const styles = {
     padding: "16px",
     border: "none",
     borderRadius: "4px",
-    background:
-      "linear-gradient(45deg, #000000 0%, #e60000 45%, #ffffff 50%, #e60000 55%, #000000 100%)",
+    background: "linear-gradient(45deg, #000000 0%, #e60000 45%, #ffffff 50%, #e60000 55%, #000000 100%)",
     backgroundSize: "200% auto",
     color: "#000000",
     fontSize: "1.1rem",
