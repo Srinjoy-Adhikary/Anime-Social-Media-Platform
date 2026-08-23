@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-axios.defaults.withCredentials = true;
-axios.defaults.baseURL = 'http://localhost:5000';
+import API from '../api/axios'; // Centralized Axios instance with baseURL ending in /api
+
 const AuthContext = createContext(null);
 
 // ─── Regex (mirrors backend) ──────────────────────────────────────────────────
@@ -10,14 +9,14 @@ export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#])[
 
 export function AuthProvider({ children }) {
   // user = { id, username, role } or null when logged out
-  const [user,    setUser]    = useState(undefined); // undefined = "not yet checked"
+  const [user, setUser]       = useState(undefined); // undefined = "not yet checked"
   const [loading, setLoading] = useState(true);
 
   // ── On mount: verify the cookie is still valid by fetching /me ──────────────
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await axios.get('/api/users/me');
+        const { data } = await API.get('/users/me');
         setUser({ id: data._id, username: data.username, role: data.role });
       } catch {
         setUser(null);
@@ -28,27 +27,26 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── Silent token refresh ────────────────────────────────────────────────────
-  // Called automatically by the Axios interceptor below when a 401 w/ TOKEN_EXPIRED arrives.
   const refresh = useCallback(async () => {
-    await axios.post('/api/auth/refresh'); // Backend rotates the access-token cookie
+    await API.post('/auth/refresh');
   }, []);
 
   // ── Login ───────────────────────────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
-    const { data } = await axios.post('/api/auth/login', { email, password });
+    const { data } = await API.post('/auth/login', { email, password });
     setUser({ id: data.user.id, username: data.user.username, role: data.user.role });
     return data;
   }, []);
 
   // ── Logout ──────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
-    await axios.post('/api/auth/logout');
+    await API.post('/auth/logout');
     setUser(null);
   }, []);
 
   // ── Axios interceptor: auto-refresh on 401 TOKEN_EXPIRED ────────────────────
   useEffect(() => {
-    const interceptor = axios.interceptors.response.use(
+    const interceptor = API.interceptors.response.use(
       (res) => res,
       async (error) => {
         const original = error.config;
@@ -60,15 +58,15 @@ export function AuthProvider({ children }) {
           original._retried = true;
           try {
             await refresh();
-            return axios(original); // Replay the original request
+            return API(original); // Replay original request
           } catch {
-            setUser(null); // Refresh also failed — force re-login
+            setUser(null); // Force re-login if refresh fails
           }
         }
         return Promise.reject(error);
       }
     );
-    return () => axios.interceptors.response.eject(interceptor);
+    return () => API.interceptors.response.eject(interceptor);
   }, [refresh]);
 
   return (
