@@ -8,6 +8,9 @@ const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#])[A-Za-z\d@$!%*?&^#]{8,}$/;
 // Password rules: min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char
 
+// ─── Production Environment Check ───────────────────────────────────────────
+const isProduction = process.env.NODE_ENV === "production";
+
 // ─── Token Helpers ───────────────────────────────────────────────────────────
 const generateAccessToken = (user) =>
   jwt.sign(
@@ -26,15 +29,15 @@ const generateRefreshToken = (user) =>
 const setTokenCookies = (res, accessToken, refreshToken) => {
   res.cookie("token", accessToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 15 * 60 * 1000, // 15 minutes
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: "/api/auth/refresh", // Scoped — only sent to the refresh endpoint
   });
@@ -71,7 +74,7 @@ const registerUser = async (req, res) => {
       username,
       email,
       password: hashedPassword,
-      role: "user", // Default role — change manually in DB to make admins
+      role: "user", // Default role
     });
 
     await user.save();
@@ -96,7 +99,7 @@ const loginUser = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" }); // Vague on purpose
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     // 2. Account lockout check
     if (user.lockUntil && user.lockUntil > Date.now()) {
@@ -164,24 +167,42 @@ const refreshToken = (req, res) => {
 
     res.cookie("token", newAccessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 15 * 60 * 1000,
     });
 
     res.json({ message: "Token refreshed" });
   } catch (error) {
     // Refresh token is invalid or expired — force re-login
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+    });
+    res.clearCookie("refreshToken", {
+      path: "/api/auth/refresh",
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+    });
     return res.status(403).json({ message: "Session expired. Please log in again." });
   }
 };
 
 // ─── Logout ──────────────────────────────────────────────────────────────────
 const logoutUser = (req, res) => {
-  res.clearCookie("token");
-  res.clearCookie("refreshToken", { path: "/api/auth/refresh" });
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  });
+  res.clearCookie("refreshToken", {
+    path: "/api/auth/refresh",
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  });
   res.json({ message: "Logged out successfully" });
 };
 
