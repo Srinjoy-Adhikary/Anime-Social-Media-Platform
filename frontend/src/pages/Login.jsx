@@ -66,7 +66,7 @@ function Login() {
                 await login(formData.email, formData.password);
                 navigate(from, { replace: true });
             } else {
-                await API.post('/api/auth/register', {
+                await API.post('/auth/register', {
                     username: formData.username,
                     email:    formData.email,
                     password: formData.password,
