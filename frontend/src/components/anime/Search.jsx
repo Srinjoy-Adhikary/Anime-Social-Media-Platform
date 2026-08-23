@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import API from '../api/axios'; // Centralized Axios instance with Bearer token interceptor
-import { useAuth } from '../context/AuthContext';
+import API from '../../api/axios'; 
+import { useAuth } from '../../context/AuthContext';
 
 // --- BERSERK DARK FANTASY THEME ---
 const theme = {
