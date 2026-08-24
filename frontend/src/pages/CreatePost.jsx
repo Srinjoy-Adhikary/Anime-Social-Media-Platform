@@ -40,7 +40,7 @@ function CreatePost() {
     }
 
     try {
-      const res = await API.get(`/api/anime/search?q=${encodeURIComponent(query)}`);
+      const res = await API.get(`/anime/search?q=${encodeURIComponent(query)}`);
       setAnimeResults(res.data || []);
     } catch (err) {
       console.error("Failed to search anime:", err);
@@ -75,7 +75,7 @@ function CreatePost() {
         data.append("image", formData.image);
       }
 
-      await API.post("/api/posts", data, {
+      await API.post("/posts", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
