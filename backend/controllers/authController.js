@@ -2,16 +2,16 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// ─── Regex Validators ───────────────────────────────────────────────────────
+
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#])[A-Za-z\d@$!%*?&^#]{8,}$/;
 // Password rules: min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char
 
-// ─── Production Environment Check ───────────────────────────────────────────
+
 const isProduction = process.env.NODE_ENV === "production";
 
-// ─── Token Helpers ───────────────────────────────────────────────────────────
+
 const generateAccessToken = (user) =>
   jwt.sign(
     { id: user._id, role: user.role },
@@ -31,29 +31,29 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    maxAge: 15 * 60 * 1000, 
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/api/auth/refresh", // Scoped — only sent to the refresh endpoint
+    maxAge: 7 * 24 * 60 * 60 * 1000, 
+    path: "/api/auth/refresh", 
   });
 };
 
-// ─── Register ────────────────────────────────────────────────────────────────
+
 const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // 1. Validate email format
+   
     if (!EMAIL_REGEX.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // 2. Validate password strength
+    
     if (!PASSWORD_REGEX.test(password)) {
       return res.status(400).json({
         message:
@@ -61,7 +61,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // 3. Check for existing user
+   
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       return res
@@ -69,12 +69,12 @@ const registerUser = async (req, res) => {
         .json({ message: "Username or email already in use" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12); // 12 rounds for stronger hashing
+    const hashedPassword = await bcrypt.hash(password, 12); 
     const user = new User({
       username,
       email,
       password: hashedPassword,
-      role: "user", // Default role
+      role: "user", 
     });
 
     await user.save();
@@ -84,7 +84,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-// ─── Login ───────────────────────────────────────────────────────────────────
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -92,7 +92,7 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Basic format check before hitting the DB
+   
     if (!EMAIL_REGEX.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
@@ -100,7 +100,7 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
-    // 2. Account lockout check
+    //  Account lockout check
     if (user.lockUntil && user.lockUntil > Date.now()) {
       const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
       return res.status(403).json({
@@ -108,14 +108,14 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // 3. Password check
+    
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
 
       if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
         user.lockUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
-        user.failedLoginAttempts = 0; // Reset counter after locking
+        user.failedLoginAttempts = 0;
         await user.save();
         return res.status(403).json({
           message: "Too many failed attempts. Account locked for 15 minutes.",
@@ -126,12 +126,12 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // 4. Successful login — reset lockout fields
+   
     user.failedLoginAttempts = 0;
     user.lockUntil = null;
     await user.save();
 
-    // 5. Issue tokens
+    //  Issue tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     setTokenCookies(res, accessToken, refreshToken);
@@ -146,7 +146,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-// ─── Refresh Token ───────────────────────────────────────────────────────────
+
 const refreshToken = (req, res) => {
   const token = req.cookies?.refreshToken;
 
@@ -157,7 +157,7 @@ const refreshToken = (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 
-    // Issue a brand-new access token (refresh token stays the same)
+    
     const newAccessToken = jwt.sign(
       { id: decoded.id, role: decoded.role },
       process.env.JWT_SECRET,
@@ -176,7 +176,7 @@ const refreshToken = (req, res) => {
       token: newAccessToken,
     });
   } catch (error) {
-    // Refresh token is invalid or expired — force re-login
+    
     res.clearCookie("token", {
       httpOnly: true,
       secure: isProduction,
@@ -192,7 +192,7 @@ const refreshToken = (req, res) => {
   }
 };
 
-// ─── Logout ──────────────────────────────────────────────────────────────────
+
 const logoutUser = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,

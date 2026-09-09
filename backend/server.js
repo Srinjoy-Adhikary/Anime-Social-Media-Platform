@@ -11,6 +11,7 @@ const watchlistRoutes = require("./routes/watchlistRoutes");
 const animeRoutes = require("./routes/animeRoutes");
 const discussionRoutes = require("./routes/discussionRoutes");
 const userRoutes = require("./routes/userRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/discussions", discussionRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 app.use("/api/anime", animeRoutes);
+app.use("/api/ai", aiRoutes);
 
 // 7. Base Health Check Route
 app.get("/", (req, res) => {

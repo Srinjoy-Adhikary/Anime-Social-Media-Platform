@@ -1,8 +1,7 @@
 const jwt = require("jsonwebtoken");
 
-// ─── protect ─────────────────────────────────────────────────────────────────
-// Verifies the access token from Authorization header or cookie.
-// Strictly returns JSON/HTTP error codes for SPA/React consumption.
+
+
 const protect = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token =
@@ -18,11 +17,11 @@ const protect = (req, res, next) => {
     req.user = decoded; // { id, role }
     next();
   } catch (error) {
-    // Access token may have expired — tell the client to refresh
+ 
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({ message: "Token expired", code: "TOKEN_EXPIRED" });
     }
-    // Any other token error (tampered, malformed, etc.)
+
     return res.status(401).json({ message: "Not authorized, token failed" });
   }
 };

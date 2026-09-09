@@ -47,7 +47,15 @@ const userSchema = new mongoose.Schema({
    type: String,
    enum: ["watching","completed","plan_to_watch","dropped"],
    default: "watching"
-  }
+  },
+  currentEpisode: {
+  type: Number,
+  default: 0
+},
+  totalEpisodes: {
+      type: Number,
+      default: 0
+    }
  }
 ]
 }, { timestamps: true });
