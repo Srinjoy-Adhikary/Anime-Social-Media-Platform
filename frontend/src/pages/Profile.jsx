@@ -194,6 +194,43 @@ export default function Profile() {
     } catch (e) { console.error(e); }
   };
 
+  const onUpdateEpisode = async (anime, newEpisode) => {
+  const episode = Number(newEpisode);
+
+  if (episode < 0) return;
+
+  if (anime.totalEpisodes > 0 && episode > anime.totalEpisodes) {
+    alert(`Maximum episode is ${anime.totalEpisodes}`);
+    return;
+  }
+
+  try {
+    const { data } = await API.put('/watchlist/progress', {
+      userId: authUser.id,
+      animeId: anime.animeId,
+      currentEpisode: episode
+    });
+
+    setUser(prev => ({
+      ...prev,
+      watchlist: prev.watchlist.map(item =>
+        item.animeId === anime.animeId
+          ? {
+              ...item,
+              currentEpisode: data.anime.currentEpisode
+            }
+          : item
+      )
+    }));
+  } catch (error) {
+    console.error("Failed to update episode:", error);
+    alert(
+      error.response?.data?.error ||
+      "Could not update episode progress."
+    );
+  }
+};
+
   const onRemove = async (animeId) => {
     if (!window.confirm('Remove this title from your list?')) return;
     try {
@@ -370,9 +407,91 @@ export default function Profile() {
                   </div>
                   <div style={{ padding: '15px 15px 17px', background: C.surface }}>
                     <h4 style={{ margin: '0 0 4px', fontSize: '.87rem', fontWeight: 600, color: C.white, lineHeight: 1.35, letterSpacing: '.2px' }}>{anime.title}</h4>
-                    <p style={{ margin: `0 0 ${isOwnProfile ? '13px' : '0'}`, fontSize: '.63rem', color: 'rgba(239,239,239,.28)', letterSpacing: '.7px' }}>
-                      {anime.genres?.join(' · ') || 'Adventure'}
-                    </p>
+                   <p style={{
+  margin: `0 0 ${isOwnProfile ? '10px' : '0'}`,
+  fontSize: '.63rem',
+  color: 'rgba(239,239,239,.28)',
+  letterSpacing: '.7px'
+}}>
+  {anime.genres?.join(' · ') || 'Adventure'}
+</p>
+
+{/* EPISODE PROGRESS */}
+<div style={{
+  marginBottom: isOwnProfile ? '12px' : '0',
+  padding: '9px 10px',
+  background: 'rgba(212,170,60,.04)',
+  border: `1px solid ${C.borderGold}`,
+  borderRadius: 2
+}}>
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: isOwnProfile ? '8px' : '0'
+  }}>
+    <span style={{
+      fontSize: '.58rem',
+      color: C.goldDim,
+      letterSpacing: '2px'
+    }}>
+      EPISODE
+    </span>
+
+    <span style={{
+      fontSize: '.7rem',
+      color: C.goldBright,
+      fontWeight: 700
+    }}>
+      {anime.currentEpisode || 0}
+      {anime.totalEpisodes > 0 && ` / ${anime.totalEpisodes}`}
+    </span>
+  </div>
+
+  {isOwnProfile && (
+    <div style={{
+      display: 'flex',
+      gap: 7
+    }}>
+      <button
+        className="btn"
+        onClick={() =>
+          onUpdateEpisode(
+            anime,
+            Math.max(0, (anime.currentEpisode || 0) - 1)
+          )
+        }
+        style={{
+          ...mkBtn('mini'),
+          flex: 1,
+          padding: '6px',
+          color: C.gold
+        }}
+      >
+        −
+      </button>
+
+      <button
+        className="btn"
+        onClick={() =>
+          onUpdateEpisode(
+            anime,
+            (anime.currentEpisode || 0) + 1
+          )
+        }
+        style={{
+          ...mkBtn('mini'),
+          flex: 1,
+          padding: '6px',
+          color: C.gold
+        }}
+      >
+        +
+      </button>
+    </div>
+  )}
+</div>
+
                     {isOwnProfile && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                         <select value={watchlistStatuses[anime.animeId] || anime.status} onChange={e => onStatusChange(anime.animeId, e.target.value)}

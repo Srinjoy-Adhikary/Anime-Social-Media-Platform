@@ -360,6 +360,7 @@ function Search() {
     }
 
     const selectedStatus = statuses[anime.mal_id] || "plan_to_watch";
+    const totalEpisodes = Number(anime.episodes) || 0;
 
     const payload = {
       userId: currentUserId,
@@ -367,7 +368,8 @@ function Search() {
       title: anime.title,
       image: anime.image,
       genres: anime.genres || [],
-      status: selectedStatus
+      status: selectedStatus,
+      totalEpisodes
     };
 
     try {
