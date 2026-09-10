@@ -6,3 +6,6 @@ build
 .env
 node_modules/
 __pycache__/
+# AI generated data
+ai-service/documents/
+ai-service/vectorstore/
