@@ -14,7 +14,6 @@ VECTORSTORE_DIR = "vectorstore"
 def ingest_documents():
     documents = []
 
-    # Go through each anime folder
     for anime_name in os.listdir(DOCUMENTS_DIR):
 
         anime_path = os.path.join(DOCUMENTS_DIR, anime_name)
@@ -22,7 +21,6 @@ def ingest_documents():
         if not os.path.isdir(anime_path):
             continue
 
-        # Go through episode files
         for filename in os.listdir(anime_path):
 
             if not filename.endswith(".txt"):
@@ -54,7 +52,6 @@ def ingest_documents():
         print("No episode documents found.")
         return
 
-    # Split documents into chunks
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
         chunk_overlap=50
@@ -65,12 +62,10 @@ def ingest_documents():
     print(f"Loaded episode documents: {len(documents)}")
     print(f"Created chunks: {len(chunks)}")
 
-    # Create embeddings
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
-    # Create FAISS vectorstore
     vectorstore = FAISS.from_documents(
         chunks,
         embeddings
@@ -78,14 +73,18 @@ def ingest_documents():
 
     vectorstore.save_local(VECTORSTORE_DIR)
 
-    print("Episode-aware FAISS vectorstore created successfully.")
+    print("Multi-anime FAISS vectorstore created successfully.")
 
-    # Show metadata
+    anime_counts = {}
+
     for chunk in chunks:
-        print(
-            f"Anime: {chunk.metadata['anime']} | "
-            f"Episode: {chunk.metadata['episode']}"
-        )
+        anime = chunk.metadata["anime"]
+        anime_counts[anime] = anime_counts.get(anime, 0) + 1
+
+    print("\nIndexed anime:")
+
+    for anime, count in anime_counts.items():
+        print(f"{anime}: {count} chunks")
 
 
 if __name__ == "__main__":

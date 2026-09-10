@@ -1,3 +1,5 @@
+import re
+
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
@@ -7,6 +9,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 VECTORSTORE_DIR = "vectorstore"
+
+
+def normalize_anime_name(name):
+    return re.sub(
+        r"[^a-zA-Z0-9_-]",
+        "-",
+        name.lower()
+    ).strip("-")
 
 
 def get_vectorstore():
@@ -21,27 +31,32 @@ def get_vectorstore():
     )
 
 
-def ask_rag(question, current_episode):
+def ask_rag(question, current_episode, anime):
     vectorstore = get_vectorstore()
 
-    # Retrieve more results than we finally need
     documents = vectorstore.similarity_search(
         question,
-        k=8
+        k=30
     )
 
-    # Remove spoilers
+    requested_anime = normalize_anime_name(anime)
+
     safe_documents = [
-        doc for doc in documents
-        if doc.metadata.get("episode", 0) <= current_episode
+        doc
+        for doc in documents
+        if normalize_anime_name(
+            doc.metadata.get("anime", "")
+        ) == requested_anime
+        and doc.metadata.get("episode", 0) <= current_episode
     ]
 
     if not safe_documents:
         return "I don't have enough information from the episodes you've watched."
 
-    # Build context
     context = "\n\n".join(
-        f"Episode {doc.metadata['episode']}:\n{doc.page_content}"
+        f"Anime: {doc.metadata['anime']}\n"
+        f"Episode {doc.metadata['episode']}:\n"
+        f"{doc.page_content}"
         for doc in safe_documents
     )
 
@@ -50,19 +65,25 @@ def ask_rag(question, current_episode):
     prompt = f"""
 You are an anime assistant for an anime social-media platform.
 
+The user is watching: {anime}
 The user has watched up to Episode {current_episode}.
 
 IMPORTANT SPOILER RULE:
-You may ONLY use information from Episode {current_episode}
-or earlier.
+
+You may ONLY use information from {anime}
+Episode {current_episode} or earlier.
 
 Never reveal information from later episodes.
+
 Never use your general knowledge to reveal future events.
+
+Never assume or invent information that is not present
+in the provided context.
 
 Answer the user's question using ONLY the provided context.
 
 If the provided context does not contain enough information,
-say:
+say exactly:
 
 "I don't have enough information from the episodes you've watched."
 
@@ -82,16 +103,18 @@ User question:
 
 
 if __name__ == "__main__":
+    anime = input("Anime: ")
 
     current_episode = int(
         input("Current episode: ")
     )
 
-    question = input("Ask about Naruto: ")
+    question = input("Question: ")
 
     answer = ask_rag(
         question,
-        current_episode
+        current_episode,
+        anime
     )
 
     print("\nAI:")

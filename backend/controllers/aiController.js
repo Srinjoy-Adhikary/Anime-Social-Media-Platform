@@ -40,21 +40,23 @@ const askAnimeAI = async (req, res) => {
 
     const currentEpisode = anime.currentEpisode || 0;
 
-    // Send request to Python RAG service
-    const response = await fetch(
-      "http://127.0.0.1:8000/ask",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          question,
-          currentEpisode,
-          anime: anime.title
-        })
-      }
-    );
+const AI_SERVICE_URL =
+  process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
+
+const response = await fetch(
+  `${AI_SERVICE_URL}/ask`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      question,
+      currentEpisode,
+      anime: anime.title
+    })
+  }
+);
 
     if (!response.ok) {
       const errorText = await response.text();

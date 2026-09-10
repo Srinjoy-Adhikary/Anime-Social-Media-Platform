@@ -100,6 +100,10 @@ export default function Profile() {
   const [watchlistStatuses, setWatchlistStatuses] = useState({});
   const [formData, setFormData] = useState({ username: '', email: '', bio: '', avatar: '', password: '', avatarFile: null });
   const [saveError, setSaveError] = useState('');
+  const [aiAnime, setAiAnime] = useState(null);
+const [aiQuestion, setAiQuestion] = useState('');
+const [aiAnswer, setAiAnswer] = useState('');
+const [aiLoading, setAiLoading] = useState(false);
 
   const STATUS = useMemo(() => ({
     watching:      { label: 'WATCHING',      color: '#d4aa3c', bg: 'rgba(212,170,60,.10)', border: 'rgba(212,170,60,.32)' },
@@ -228,6 +232,31 @@ export default function Profile() {
       error.response?.data?.error ||
       "Could not update episode progress."
     );
+  }
+};
+const onAskAI = async (anime) => {
+  if (!aiQuestion.trim()) return;
+
+  try {
+    setAiLoading(true);
+    setAiAnswer('');
+
+    const { data } = await API.post('/ai/ask', {
+      userId: authUser.id,
+      animeId: anime.animeId,
+      question: aiQuestion.trim()
+    });
+
+    setAiAnswer(data.answer);
+  } catch (error) {
+    console.error("AI request failed:", error);
+
+    setAiAnswer(
+      error.response?.data?.error ||
+      "Could not get an answer from AI."
+    );
+  } finally {
+    setAiLoading(false);
   }
 };
 
@@ -461,6 +490,7 @@ export default function Profile() {
             Math.max(0, (anime.currentEpisode || 0) - 1)
           )
         }
+        
         style={{
           ...mkBtn('mini'),
           flex: 1,
@@ -489,8 +519,72 @@ export default function Profile() {
         +
       </button>
     </div>
+    
   )}
+  
 </div>
+<div style={{ display: 'flex', gap: 7 }}>
+
+  {/* DECREASE EPISODE */}
+  <button
+    className="btn"
+    onClick={() =>
+      onUpdateEpisode(
+        anime,
+        Math.max(0, (anime.currentEpisode || 0) - 1)
+      )
+    }
+    style={{
+      ...mkBtn('mini'),
+      flex: 1,
+      padding: '6px',
+      color: C.gold
+    }}
+  >
+    −
+  </button>
+
+  {/* INCREASE EPISODE */}
+  <button
+    className="btn"
+    onClick={() =>
+      onUpdateEpisode(
+        anime,
+        (anime.currentEpisode || 0) + 1
+      )
+    }
+    style={{
+      ...mkBtn('mini'),
+      flex: 1,
+      padding: '6px',
+      color: C.gold
+    }}
+  >
+    +
+  </button>
+
+</div>
+
+{/* ASK AI BUTTON */}
+{isOwnProfile && (
+  <button
+    className="btn"
+    onClick={() => {
+      setAiAnime(anime);
+      setAiQuestion('');
+      setAiAnswer('');
+    }}
+    style={{
+      ...mkBtn('gold'),
+      width: '100%',
+      marginTop: '10px',
+      padding: '8px',
+      fontSize: '.6rem'
+    }}
+  >
+    🤖 ASK AI
+  </button>
+)}
 
                     {isOwnProfile && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>

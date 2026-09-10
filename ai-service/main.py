@@ -32,7 +32,8 @@ def ask(request: AskRequest):
 
     answer = ask_rag(
         request.question,
-        request.currentEpisode
+        request.currentEpisode,
+           request.anime
     )
 
     return {
