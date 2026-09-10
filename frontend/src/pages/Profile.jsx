@@ -524,6 +524,28 @@ const onAskAI = async (anime) => {
   
 </div>
 
+                    {/* ASK AI BUTTON */}
+                    {isOwnProfile && (
+                      <button
+                        className="btn"
+                        onClick={() => {
+                          setAiAnime(anime);
+                          setAiQuestion('');
+                          setAiAnswer('');
+                        }}
+                        style={{
+                          ...mkBtn('gold'),
+                          width: '100%',
+                          marginTop: '10px',
+                          marginBottom: '10px',
+                          padding: '8px',
+                          fontSize: '.6rem'
+                        }}
+                      >
+                        🤖 ASK AI
+                      </button>
+                    )}
+
                     {isOwnProfile && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                         <select value={watchlistStatuses[anime.animeId] || anime.status} onChange={e => onStatusChange(anime.animeId, e.target.value)}
