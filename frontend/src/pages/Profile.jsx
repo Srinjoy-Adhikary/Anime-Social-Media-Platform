@@ -101,9 +101,9 @@ export default function Profile() {
   const [formData, setFormData] = useState({ username: '', email: '', bio: '', avatar: '', password: '', avatarFile: null });
   const [saveError, setSaveError] = useState('');
   const [aiAnime, setAiAnime] = useState(null);
-const [aiQuestion, setAiQuestion] = useState('');
-const [aiAnswer, setAiAnswer] = useState('');
-const [aiLoading, setAiLoading] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState('');
+  const [aiAnswer, setAiAnswer] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   const STATUS = useMemo(() => ({
     watching:      { label: 'WATCHING',      color: '#d4aa3c', bg: 'rgba(212,170,60,.10)', border: 'rgba(212,170,60,.32)' },
@@ -523,68 +523,6 @@ const onAskAI = async (anime) => {
   )}
   
 </div>
-<div style={{ display: 'flex', gap: 7 }}>
-
-  {/* DECREASE EPISODE */}
-  <button
-    className="btn"
-    onClick={() =>
-      onUpdateEpisode(
-        anime,
-        Math.max(0, (anime.currentEpisode || 0) - 1)
-      )
-    }
-    style={{
-      ...mkBtn('mini'),
-      flex: 1,
-      padding: '6px',
-      color: C.gold
-    }}
-  >
-    −
-  </button>
-
-  {/* INCREASE EPISODE */}
-  <button
-    className="btn"
-    onClick={() =>
-      onUpdateEpisode(
-        anime,
-        (anime.currentEpisode || 0) + 1
-      )
-    }
-    style={{
-      ...mkBtn('mini'),
-      flex: 1,
-      padding: '6px',
-      color: C.gold
-    }}
-  >
-    +
-  </button>
-
-</div>
-
-{/* ASK AI BUTTON */}
-{isOwnProfile && (
-  <button
-    className="btn"
-    onClick={() => {
-      setAiAnime(anime);
-      setAiQuestion('');
-      setAiAnswer('');
-    }}
-    style={{
-      ...mkBtn('gold'),
-      width: '100%',
-      marginTop: '10px',
-      padding: '8px',
-      fontSize: '.6rem'
-    }}
-  >
-    🤖 ASK AI
-  </button>
-)}
 
                     {isOwnProfile && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -612,6 +550,139 @@ const onAskAI = async (anime) => {
             <p style={{ color: 'rgba(239,239,239,.22)', fontSize: '.7rem', letterSpacing: '4px' }}>NO TITLES LOGGED YET</p>
           </div>
         )}
+
+      {/* ANIME AI MODAL */}
+      {aiAnime && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(0,0,0,.78)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setAiAnime(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 520,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              background: C.obsidian,
+              border: `1px solid ${C.borderGold}`,
+              boxShadow: '0 30px 80px rgba(0,0,0,.9)',
+              padding: '24px'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 18
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    color: C.goldDim,
+                    fontSize: '.58rem',
+                    letterSpacing: '3px',
+                    marginBottom: 5
+                  }}
+                >
+                  ANIME AI
+                </div>
+
+                <h3
+                  style={{
+                    margin: 0,
+                    color: C.goldBright,
+                    fontSize: '1rem',
+                    letterSpacing: '2px'
+                  }}
+                >
+                  {aiAnime.title}
+                </h3>
+              </div>
+
+              <button
+                className="btn"
+                onClick={() => setAiAnime(null)}
+                style={{
+                  ...mkBtn('ghost'),
+                  padding: '6px 10px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              style={{
+                padding: '9px 12px',
+                marginBottom: 14,
+                background: 'rgba(212,170,60,.05)',
+                border: `1px solid ${C.borderGold}`,
+                color: C.goldDim,
+                fontSize: '.6rem',
+                letterSpacing: '1.5px'
+              }}
+            >
+              SPOILER PROTECTION: UP TO EPISODE {aiAnime.currentEpisode || 0}
+            </div>
+
+            <textarea
+              value={aiQuestion}
+              onChange={(e) => setAiQuestion(e.target.value)}
+              placeholder="Ask something about what you've watched..."
+              rows={4}
+              style={{
+                ...inputBase,
+                resize: 'vertical',
+                marginBottom: 12
+              }}
+            />
+
+            <button
+              className="btn"
+              onClick={() => onAskAI(aiAnime)}
+              disabled={aiLoading || !aiQuestion.trim()}
+              style={{
+                ...mkBtn('gold'),
+                width: '100%',
+                opacity: aiLoading || !aiQuestion.trim() ? .5 : 1
+              }}
+            >
+              {aiLoading ? 'THINKING...' : 'ASK AI'}
+            </button>
+
+            {aiAnswer && (
+              <div
+                style={{
+                  marginTop: 18,
+                  padding: '15px',
+                  background: 'rgba(255,255,255,.025)',
+                  border: `1px solid ${C.border}`,
+                  color: C.whiteDim,
+                  fontFamily: "'EB Garamond',serif",
+                  fontSize: '1rem',
+                  lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
+                {aiAnswer}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       </div>
     </div>
   );
