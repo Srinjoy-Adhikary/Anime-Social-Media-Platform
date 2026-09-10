@@ -19,6 +19,16 @@ load_dotenv()
 
 VECTORSTORE_DIR = "vectorstore"
 
+INDEX_FILE = os.path.join(
+    VECTORSTORE_DIR,
+    "anime.index"
+)
+
+DOCUMENTS_FILE = os.path.join(
+    VECTORSTORE_DIR,
+    "documents.json"
+)
+
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMENSION = 768
 
@@ -28,6 +38,7 @@ EMBEDDING_DIMENSION = 768
 # ============================================================
 
 def normalize_anime_name(name):
+
     return re.sub(
         r"[^a-zA-Z0-9_-]",
         "-",
@@ -55,37 +66,95 @@ def normalize_vector(vector):
 
 
 # ============================================================
-# LOAD FAISS VECTORSTORE
+# CREATE EMPTY VECTORSTORE
 # ============================================================
 
-def load_vectorstore():
+def create_empty_vectorstore():
 
-    index = faiss.read_index(
-        os.path.join(
-            VECTORSTORE_DIR,
-            "anime.index"
-        )
+    os.makedirs(
+        VECTORSTORE_DIR,
+        exist_ok=True
+    )
+
+    index = faiss.IndexFlatIP(
+        EMBEDDING_DIMENSION
+    )
+
+    documents = []
+
+    faiss.write_index(
+        index,
+        INDEX_FILE
     )
 
     with open(
-        os.path.join(
-            VECTORSTORE_DIR,
-            "documents.json"
-        ),
-        "r",
+        DOCUMENTS_FILE,
+        "w",
         encoding="utf-8"
     ) as file:
 
-        documents = json.load(file)
+        json.dump(
+            documents,
+            file,
+            ensure_ascii=False,
+            indent=2
+        )
 
     return index, documents
 
 
 # ============================================================
-# SAVE FAISS VECTORSTORE
+# LOAD VECTORSTORE
 # ============================================================
 
-def save_vectorstore(index, documents):
+def load_vectorstore():
+
+    # --------------------------------------------------------
+    # Render may start with no vectorstore because generated
+    # files are not stored in Git.
+    # --------------------------------------------------------
+
+    if not os.path.exists(INDEX_FILE):
+
+        print(
+            "No FAISS index found."
+        )
+
+        print(
+            "Creating empty FAISS vectorstore..."
+        )
+
+        return create_empty_vectorstore()
+
+    index = faiss.read_index(
+        INDEX_FILE
+    )
+
+    if os.path.exists(DOCUMENTS_FILE):
+
+        with open(
+            DOCUMENTS_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            documents = json.load(file)
+
+    else:
+
+        documents = []
+
+    return index, documents
+
+
+# ============================================================
+# SAVE VECTORSTORE
+# ============================================================
+
+def save_vectorstore(
+    index,
+    documents
+):
 
     os.makedirs(
         VECTORSTORE_DIR,
@@ -94,17 +163,11 @@ def save_vectorstore(index, documents):
 
     faiss.write_index(
         index,
-        os.path.join(
-            VECTORSTORE_DIR,
-            "anime.index"
-        )
+        INDEX_FILE
     )
 
     with open(
-        os.path.join(
-            VECTORSTORE_DIR,
-            "documents.json"
-        ),
+        DOCUMENTS_FILE,
         "w",
         encoding="utf-8"
     ) as file:
@@ -146,7 +209,6 @@ def get_embedding(
 
         except ClientError as error:
 
-            # Gemini free-tier rate limit
             if error.code == 429:
 
                 message = str(error)
@@ -156,8 +218,6 @@ def get_embedding(
                     "Gemini embedding rate limit reached."
                 )
 
-                # Try to read Google's suggested
-                # retry duration
                 match = re.search(
                     r"retry in ([0-9.]+)s",
                     message,
@@ -192,7 +252,7 @@ def get_embedding(
 
 
 # ============================================================
-# GET EPISODES ALREADY INDEXED FOR ANIME
+# GET INDEXED EPISODES
 # ============================================================
 
 def get_indexed_episodes(
@@ -209,7 +269,10 @@ def get_indexed_episodes(
     for document in documents:
 
         document_anime = normalize_anime_name(
-            document.get("anime", "")
+            document.get(
+                "anime",
+                ""
+            )
         )
 
         if document_anime == requested_anime:
@@ -227,7 +290,7 @@ def get_indexed_episodes(
 
 
 # ============================================================
-# INDEX ONLY NEW WATCHED EPISODES
+# INDEX NEW EPISODES
 # ============================================================
 
 def index_new_anime(
@@ -242,7 +305,7 @@ def index_new_anime(
     )
 
     # --------------------------------------------------------
-    # Automatically download episode documents from Kitsu
+    # Get episode documents from Kitsu
     # --------------------------------------------------------
 
     anime_dir = ensure_anime_documents(
@@ -254,14 +317,10 @@ def index_new_anime(
         return False
 
     # --------------------------------------------------------
-    # Load existing FAISS index
+    # Load existing index
     # --------------------------------------------------------
 
     index, documents = load_vectorstore()
-
-    # --------------------------------------------------------
-    # Find episodes already embedded
-    # --------------------------------------------------------
 
     indexed_episodes = get_indexed_episodes(
         documents,
@@ -273,20 +332,15 @@ def index_new_anime(
         f"{len(indexed_episodes)}"
     )
 
-    # --------------------------------------------------------
-    # Gemini client
-    # --------------------------------------------------------
-
     client = genai.Client()
 
     episode_files = []
 
     # --------------------------------------------------------
-    # Find episodes that:
+    # Find only episodes that:
     #
-    # 1. Exist on disk
-    # 2. User has watched
-    # 3. Are not already embedded
+    # - User has watched
+    # - Are not already indexed
     # --------------------------------------------------------
 
     for filename in os.listdir(
@@ -312,7 +366,7 @@ def index_new_anime(
         if episode_number > current_episode:
             continue
 
-        # Don't embed an episode twice
+        # Don't embed the same episode twice
         if episode_number in indexed_episodes:
             continue
 
@@ -323,13 +377,12 @@ def index_new_anime(
             )
         )
 
-    # Sort episodes numerically
     episode_files.sort(
         key=lambda x: x[0]
     )
 
     # --------------------------------------------------------
-    # Nothing new to index
+    # Nothing new to embed
     # --------------------------------------------------------
 
     if not episode_files:
@@ -347,7 +400,7 @@ def index_new_anime(
     )
 
     # --------------------------------------------------------
-    # Embed episodes one by one
+    # Embed episodes one at a time
     # --------------------------------------------------------
 
     for position, (
@@ -377,19 +430,11 @@ def index_new_anime(
             f"({position}/{len(episode_files)})..."
         )
 
-        # ----------------------------------------------------
-        # Generate Gemini document embedding
-        # ----------------------------------------------------
-
         vector = get_embedding(
             client,
             content,
             "RETRIEVAL_DOCUMENT"
         )
-
-        # ----------------------------------------------------
-        # Create metadata
-        # ----------------------------------------------------
 
         document = {
             "content": content,
@@ -400,7 +445,7 @@ def index_new_anime(
         }
 
         # ----------------------------------------------------
-        # Add vector to FAISS
+        # Add vector
         # ----------------------------------------------------
 
         index.add(
@@ -420,9 +465,6 @@ def index_new_anime(
 
         # ----------------------------------------------------
         # SAVE IMMEDIATELY
-        #
-        # If the process stops or Render restarts,
-        # already embedded episodes are preserved.
         # ----------------------------------------------------
 
         save_vectorstore(
@@ -460,7 +502,7 @@ def get_query_embedding(
 
 
 # ============================================================
-# MAIN RAG FUNCTION
+# RAG
 # ============================================================
 
 def ask_rag(
@@ -470,22 +512,13 @@ def ask_rag(
 ):
 
     # --------------------------------------------------------
-    # Load current vectorstore
+    # Load or create vectorstore
     # --------------------------------------------------------
 
     index, documents = load_vectorstore()
 
     # --------------------------------------------------------
-    # Automatically fetch and index ONLY episodes the user
-    # has watched.
-    #
-    # Example:
-    #
-    # Bleach EP 5
-    # → index EP 1-5
-    #
-    # Later EP 20
-    # → index only EP 6-20
+    # Automatically fetch + index anime
     # --------------------------------------------------------
 
     success = index_new_anime(
@@ -501,7 +534,7 @@ def ask_rag(
         )
 
     # --------------------------------------------------------
-    # Reload because new vectors may have been added
+    # Reload after indexing
     # --------------------------------------------------------
 
     index, documents = load_vectorstore()
@@ -509,7 +542,7 @@ def ask_rag(
     client = genai.Client()
 
     # --------------------------------------------------------
-    # Embed user's question
+    # Embed question
     # --------------------------------------------------------
 
     query_vector = get_query_embedding(
@@ -523,12 +556,19 @@ def ask_rag(
     )
 
     # --------------------------------------------------------
-    # FAISS similarity search
+    # FAISS search
     # --------------------------------------------------------
+
+    if index.ntotal == 0:
+
+        return (
+            "I don't have enough information "
+            "from the episodes you've watched."
+        )
 
     search_count = min(
         30,
-        len(documents)
+        index.ntotal
     )
 
     scores, indices = index.search(
@@ -543,12 +583,7 @@ def ask_rag(
     safe_documents = []
 
     # --------------------------------------------------------
-    # FILTER RESULTS
-    #
-    # 1. Correct anime
-    # 2. Episode <= user's current episode
-    #
-    # This is the core spoiler protection.
+    # SPOILER FILTER
     # --------------------------------------------------------
 
     for idx in indices[0]:
@@ -593,7 +628,7 @@ def ask_rag(
         )
 
     # --------------------------------------------------------
-    # Build context for Gemini
+    # Build context
     # --------------------------------------------------------
 
     context = "\n\n".join(
@@ -650,7 +685,7 @@ User question:
 """
 
     # --------------------------------------------------------
-    # Generate final answer
+    # Generate answer
     # --------------------------------------------------------
 
     response = client.models.generate_content(
@@ -662,7 +697,7 @@ User question:
 
 
 # ============================================================
-# DIRECT TERMINAL TEST
+# TERMINAL TEST
 # ============================================================
 
 if __name__ == "__main__":
